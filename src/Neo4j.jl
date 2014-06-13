@@ -1,4 +1,4 @@
-module Neo4j.jl
+module Neo4j
 
 # package code goes here
 

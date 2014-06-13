@@ -10,4 +10,4 @@ before_install:
   - sudo apt-get install libpcre3-dev julia -y
 script:
   - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir("Neo4j.jl"))`); Pkg.pin("Neo4j.jl"); Pkg.resolve()'
-  - julia -e 'using Neo4j.jl; @assert isdefined(:Neo4j.jl); @assert typeof(Neo4j.jl) === Module'
+  - julia -e 'using Neo4j; @assert isdefined(:Neo4j); @assert typeof(Neo4j) === Module'
