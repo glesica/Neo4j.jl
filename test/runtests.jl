@@ -77,6 +77,16 @@ nodes = getnodesforlabel(graph, "E")
 labels = getlabels(graph)
 # TODO Can't really test this because there might be other crap in the local DB
 
+rel1 = createrel(barenode, propnode, "test"; props=(String=>Any)["a" => "A", "b" => 1])
+rel1alt = getrel(graph, rel1.id)
+@test rel1.reltype == "TEST"
+@test rel1.data["a"] == "A"
+@test rel1.data["b"] == 1
+@test rel1.id == rel1alt.id
+
+deleterel(rel1)
+@test_throws ErrorException, getrel(graph, rel1.id)
+
 deletenode(graph, barenode.id)
 deletenode(graph, propnode.id)
 @test_throws ErrorException, getnode(graph, barenode.id)

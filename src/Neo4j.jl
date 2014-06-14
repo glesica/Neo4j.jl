@@ -6,7 +6,7 @@ using JSON
 export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperties,
        updatenodeproperties, deletenodeproperties, deletenodeproperty, addnodelabel,
        addnodelabels, updatenodelabels, deletenodelabel, getnodelabels, getnodesforlabel,
-       getlabels
+       getlabels, getrel, createrel, deleterel
 
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
@@ -18,6 +18,18 @@ typealias JSONArray Union(Vector,Nothing)
 typealias JSONData Union(JSONObject,JSONArray,String,Number,Nothing)
 
 typealias QueryData Union(Dict{Any,Any},Nothing)
+
+# -----------------------
+# Relationship Directions
+# -----------------------
+
+immutable Direction
+    dir::String
+end
+
+const inrels = Direction("in")
+const outrels = Direction("out")
+const bothrels = Direction("both")
 
 # ----------
 # Connection
@@ -92,12 +104,12 @@ immutable Node
     incoming_relationships::String
     incoming_typed_relationships::String
     create_relationship::String
-    data::Dict{String,Any}
+    data::JSONObject
     id::Int
     graph::Graph
 end
 
-Node(data::Dict{String,Any}, graph::Graph) = Node(data["paged_traverse"], data["labels"],
+Node(data::JSONObject, graph::Graph) = Node(data["paged_traverse"], data["labels"],
      data["outgoing_relationships"], data["traverse"], data["all_typed_relationships"],
      data["all_relationships"], data["property"],
      data["self"], data["outgoing_typed_relationships"], data["properties"],
@@ -226,6 +238,49 @@ end
 function getlabels(graph::Graph)
     resp = request(graph.node_labels, get, 200)
     resp.data |> JSON.parse
+end
+
+# -------------
+# Relationships
+# -------------
+
+immutable Relationship
+    relstart::String
+    property::String
+    self::String
+    properties::String
+    reltype::String
+    relend::String
+    data::JSONObject
+    id::Int
+    graph::Graph
+end
+
+Relationship(data::JSONObject, graph::Graph) = Relationship(data["start"], data["property"],
+        data["self"], data["properties"], data["type"], data["end"], data["data"],
+        split(data["self"], "/")[end] |> int, graph)
+
+function getnoderels(node::Node; reldir::Direction=bothrels)
+
+end
+
+function getrel(graph::Graph, id::Int)
+    url = "$(graph.connection.url)relationship/$id"
+    resp = request(url, get, 200)
+    Relationship(resp.data |> JSON.parse, graph)
+end
+
+function createrel(from::Node, to::Node, reltype::String; props::JSONObject=nothing)
+    body = (String=>Any)["to" => to.self, "type" => uppercase(reltype)]
+    if props !== nothing
+        body["data"] = props
+    end
+    resp = request(from.create_relationship, post, 201, json=body)
+    Relationship(resp.data |> JSON.parse, from.graph)
+end
+
+function deleterel(rel::Relationship)
+    request(rel.self, delete, 204)
 end
 
 end # module
