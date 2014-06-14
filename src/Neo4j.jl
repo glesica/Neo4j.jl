@@ -3,12 +3,18 @@ module Neo4j
 using Requests
 using JSON
 
-export getgraph, version, createnode
+export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperties,
+       updatenodeproperties, deletenodeproperties, deletenodeproperty, addnodelabel,
+       addnodelabels
 
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
 const DEFAULT_URI = "/db/data/"
 const DEFAULT_HEADERS = {"Accept" => "application/json; charset=UTF-8", "Host" => "localhost:7474"}
+
+typealias JSONObject Dict{String,Any}
+typealias JSONArray Vector
+typealias JSONData Union(JSONObject,JSONArray,String,Number,Nothing)
 
 # ----------
 # Connection
@@ -84,20 +90,106 @@ immutable Node
     create_relationship::String
     data::Dict{String,Any}
     id::Int
+    graph::Graph
 end
 
-Node(data::Dict{String,Any}) = Node(data["paged_traverse"], data["labels"], data["outgoing_relationships"],
-    data["traverse"], data["all_typed_relationships"], data["all_relationships"], data["property"],
-    data["self"], data["outgoing_typed_relationships"], data["properties"], data["incoming_relationships"],
-    data["incoming_typed_relationships"], data["create_relationship"], data["data"],
-    split(data["self"], "/")[end] |> int)
+Node(data::Dict{String,Any}, graph::Graph) = Node(data["paged_traverse"], data["labels"],
+     data["outgoing_relationships"], data["traverse"], data["all_typed_relationships"],
+     data["all_relationships"], data["property"],
+     data["self"], data["outgoing_typed_relationships"], data["properties"],
+     data["incoming_relationships"], data["incoming_typed_relationships"],
+     data["create_relationship"], data["data"],
+     split(data["self"], "/")[end] |> int, graph)
 
-function createnode(graph::Graph)
-    resp = post(graph.node; headers=DEFAULT_HEADERS)
-    if resp.status !== 201
-        error("Node creation unsuccessful: $(resp.status)")
+# --------
+# Requests
+# --------
+
+function request(url::String, method::Function, exp_code::Int;
+                 headers::Dict{Any,Any}=DEFAULT_HEADERS, json::JSONData=nothing)
+    if json == nothing
+        resp = method(url; headers=headers)
+    else
+        resp = method(url; headers=headers, json=json)
     end
-    Node(resp.data |> JSON.parse)
+    if resp.status !== exp_code
+        if resp.data !== ""
+            respdata = resp.data |> JSON.parse
+            error("Neo4j error: $(respdata["message"])")
+        else
+            error("Neo4j error: $(url) returned $(resp.status)")
+        end
+    end
+    resp
+end
+
+# -----------------
+# External requests
+# -----------------
+
+function createnode(graph::Graph, props::JSONData=nothing)
+    resp = request(graph.node, post, 201; json=props)
+    Node(resp.data |> JSON.parse, graph)
+end
+
+function getnode(graph::Graph, id::Int)
+    url = "$(graph.node)/$id"
+    resp = request(url, get, 200)
+    Node(resp.data |> JSON.parse, graph)
+end
+
+function getnode(node::Node)
+    getnode(node.graph, node.id)
+end
+
+function deletenode(node::Node)
+    request(node.self, delete, 204)
+end
+
+function deletenode(graph::Graph, id::Int)
+    node = getnode(graph, id)
+    deletenode(node)
+end
+
+function setnodeproperty(node::Node, name::String, value::Any)
+    url = replace(node.property, "{key}", name)
+    request(url, put, 204; json=value)
+end
+
+function setnodeproperty(graph::Graph, id::Int, name::String, value::Any)
+    node = getnode(graph, id)
+    setnodeproperty(node, name, value)
+end
+
+function updatenodeproperties(node::Node, props::JSONObject)
+    resp = request(node.properties, put, 204; json=props)
+end
+
+function getnodeproperties(node::Node)
+    resp = request(node.properties, get, 200)
+    resp.data |> JSON.parse
+end
+
+function getnodeproperties(graph::Graph, id::Int)
+    node = getnode(graph, id)
+    getnodeproperties(node)
+end
+
+function deletenodeproperties(node::Node)
+    request(node.properties, delete, 204)
+end
+
+function deletenodeproperty(node::Node, name::String)
+    url = replace(node.property, "{key}", name)
+    request(url, delete, 204)
+end
+
+function addnodelabel(node::Node, label::String)
+    request(node.labels, post, 204; json=label)
+end
+
+function addnodelabels(node::Node, labels::JSONArray)
+    request(node.labels, post, 204; json=labels)
 end
 
 end # module
