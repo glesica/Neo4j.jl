@@ -5,16 +5,19 @@ using JSON
 
 export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperties,
        updatenodeproperties, deletenodeproperties, deletenodeproperty, addnodelabel,
-       addnodelabels
+       addnodelabels, updatenodelabels, deletenodelabel, getnodelabels, getnodesforlabel,
+       getlabels
 
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
 const DEFAULT_URI = "/db/data/"
 const DEFAULT_HEADERS = {"Accept" => "application/json; charset=UTF-8", "Host" => "localhost:7474"}
 
-typealias JSONObject Dict{String,Any}
-typealias JSONArray Vector
+typealias JSONObject Union(Dict{String,Any},Nothing)
+typealias JSONArray Union(Vector,Nothing)
 typealias JSONData Union(JSONObject,JSONArray,String,Number,Nothing)
+
+typealias QueryData Union(Dict{Any,Any},Nothing)
 
 # ----------
 # Connection
@@ -51,18 +54,19 @@ immutable Graph
     transaction::String
     node_labels::String
     version:: String
+    connection::Connection
 end
 
-Graph(data::Dict{String,Any}) = Graph(data["node"], data["node_index"], data["relationship_index"],
+Graph(data::Dict{String,Any}, conn::Connection) = Graph(data["node"], data["node_index"], data["relationship_index"],
     data["extensions_info"], data["relationship_types"], data["batch"], data["cypher"], data["indexes"],
-    data["constraints"], data["transaction"], data["node_labels"], data["neo4j_version"])
+    data["constraints"], data["transaction"], data["node_labels"], data["neo4j_version"], conn)
 
 function getgraph(conn::Connection)
     resp = get(conn.url; headers=DEFAULT_HEADERS)
     if resp.status !== 200
         error("Connection to server unsuccessful: $(resp.status)")
     end
-    Graph(resp.data |> JSON.parse)
+    Graph(resp.data |> JSON.parse, conn)
 end
 
 function getgraph()
@@ -106,11 +110,17 @@ Node(data::Dict{String,Any}, graph::Graph) = Node(data["paged_traverse"], data["
 # --------
 
 function request(url::String, method::Function, exp_code::Int;
-                 headers::Dict{Any,Any}=DEFAULT_HEADERS, json::JSONData=nothing)
-    if json == nothing
+                 headers::Dict{Any,Any}=DEFAULT_HEADERS, json::JSONData=nothing,
+                 query::QueryData=nothing)
+    if json == nothing && query == nothing
         resp = method(url; headers=headers)
-    else
+    elseif json == nothing
+        resp = method(url; headers=headers, query=query)
+    elseif query == nothing
         resp = method(url; headers=headers, json=json)
+    else
+        # TODO Figure out if this should ever occur and change it to an error if not
+        resp = method(url; headers=headers, json=json, query=query)
     end
     if resp.status !== exp_code
         if resp.data !== ""
@@ -190,6 +200,32 @@ end
 
 function addnodelabels(node::Node, labels::JSONArray)
     request(node.labels, post, 204; json=labels)
+end
+
+function updatenodelabels(node::Node, labels::JSONArray)
+    request(node.labels, put, 204; json=labels)
+end
+
+function deletenodelabel(node::Node, label::String)
+    url = "$(node.labels)/$label"
+    request(url, delete, 204)
+end
+
+function getnodelabels(node::Node)
+    resp = request(node.labels, get, 200)
+    resp.data |> JSON.parse
+end
+
+function getnodesforlabel(graph::Graph, label::String, props::JSONObject=nothing)
+    # TODO Shouldn't this url be available in the api somewhere?
+    url = "$(graph.connection.url)label/$label/nodes"
+    resp = request(url, get, 200; query=props)
+    [Node(nodedata, graph) for nodedata = JSON.parse(resp.data)]
+end
+
+function getlabels(graph::Graph)
+    resp = request(graph.node_labels, get, 200)
+    resp.data |> JSON.parse
 end
 
 end # module

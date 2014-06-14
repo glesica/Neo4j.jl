@@ -45,9 +45,37 @@ propnode = getnode(propnode)
 
 addnodelabel(barenode, "A")
 barenode = getnode(barenode)
+@test getnodelabels(barenode) == ["A"]
 
 addnodelabels(barenode, ["B", "C"])
 barenode = getnode(barenode)
+labels = getnodelabels(barenode)
+@test "A" in labels
+@test "B" in labels
+@test "C" in labels
+@test length(labels) == 3
+
+updatenodelabels(barenode, ["D", "E", "F"])
+barenode = getnode(barenode)
+labels = getnodelabels(barenode)
+@test "D" in labels
+@test "E" in labels
+@test "F" in labels
+@test length(labels) == 3
+
+deletenodelabel(barenode, "D")
+barenode = getnode(barenode)
+labels = getnodelabels(barenode)
+@test "E" in labels
+@test "F" in labels
+@test length(labels) == 2
+
+nodes = getnodesforlabel(graph, "E")
+@test length(nodes) > 0
+@test barenode.id in [n.id for n = nodes]
+
+labels = getlabels(graph)
+# TODO Can't really test this because there might be other crap in the local DB
 
 deletenode(graph, barenode.id)
 deletenode(graph, propnode.id)
