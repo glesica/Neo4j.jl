@@ -136,8 +136,8 @@ function request(url::String, method::Function, exp_code::Int;
         resp = method(url; headers=headers, json=json, query=query)
     end
     if resp.status !== exp_code
-        if resp.data !== ""
-            respdata = resp.data |> JSON.parse
+        respdata = resp.data |> JSON.parse
+        if respdata !== nothing && "message" in keys(respdata)
             error("Neo4j error: $(respdata["message"])")
         else
             error("Neo4j error: $(url) returned $(resp.status)")

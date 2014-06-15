@@ -93,9 +93,9 @@ rel1prop = getrelproperties(rel1)
 @test getrelproperty(rel1, "b") == 1
 
 deleterel(rel1)
-@test_throws ErrorException, getrel(graph, rel1.id)
+@test_throws ErrorException getrel(graph, rel1.id)
 
 deletenode(graph, barenode.id)
 deletenode(graph, propnode.id)
-@test_throws ErrorException, getnode(graph, barenode.id)
-@test_throws ErrorException, getnode(graph, propnode.id)
+@test_throws ErrorException getnode(graph, barenode.id)
+@test_throws ErrorException getnode(graph, propnode.id)
