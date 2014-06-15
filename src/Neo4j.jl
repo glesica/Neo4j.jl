@@ -68,11 +68,13 @@ immutable Graph
     node_labels::String
     version:: String
     connection::Connection
+    relationship::String # Not in the spec
 end
 
 Graph(data::Dict{String,Any}, conn::Connection) = Graph(data["node"], data["node_index"], data["relationship_index"],
     data["extensions_info"], data["relationship_types"], data["batch"], data["cypher"], data["indexes"],
-    data["constraints"], data["transaction"], data["node_labels"], data["neo4j_version"], conn)
+    data["constraints"], data["transaction"], data["node_labels"], data["neo4j_version"], conn,
+    "$(conn.url)relationship")
 
 function getgraph(conn::Connection)
     resp = get(conn.url; headers=DEFAULT_HEADERS)
@@ -272,7 +274,7 @@ function getnoderels(node::Node; reldir::Direction=bothrels)
 end
 
 function getrel(graph::Graph, id::Int)
-    url = "$(graph.connection.url)relationship/$id"
+    url = "$(graph.relationship)/$id"
     resp = request(url, get, 200)
     Relationship(resp.data |> JSON.parse, graph)
 end
