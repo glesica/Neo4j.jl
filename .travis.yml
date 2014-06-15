@@ -4,8 +4,8 @@ compiler:
 notifications:
   email: false
 before_install:
-  - sudo add-apt-repository ppa:staticfloat/julia-deps -y
-  - sudo add-apt-repository ppa:staticfloat/julianightlies -y
+#  - sudo add-apt-repository ppa:staticfloat/julia-deps -y
+#  - sudo add-apt-repository ppa:staticfloat/julianightlies -y
   - sudo wget -O - http://debian.neo4j.org/neotechnology.gpg.key | sudo apt-key add -
   - echo 'deb http://debian.neo4j.org/repo stable/' | sudo tee /etc/apt/sources.list.d/neo4j.list
   - sudo apt-get update -qq -y
