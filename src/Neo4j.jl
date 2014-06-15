@@ -3,10 +3,11 @@ module Neo4j
 using Requests
 using JSON
 
-export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperties,
-       updatenodeproperties, deletenodeproperties, deletenodeproperty, addnodelabel,
-       addnodelabels, updatenodelabels, deletenodelabel, getnodelabels, getnodesforlabel,
-       getlabels, getrel, createrel, deleterel
+export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperty,
+       getnodeproperties, updatenodeproperties, deletenodeproperties, deletenodeproperty,
+       addnodelabel, addnodelabels, updatenodelabels, deletenodelabel, getnodelabels,
+       getnodesforlabel, getlabels, getrel, createrel, deleterel, getrelproperty,
+       getrelproperties, updaterelproperties
 
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
@@ -187,6 +188,12 @@ function updatenodeproperties(node::Node, props::JSONObject)
     resp = request(node.properties, put, 204; json=props)
 end
 
+function getnodeproperty(node::Node, name::String)
+    url = replace(node.property, "{key}", name)
+    resp = request(url, get, 200)
+    resp.data |> JSON.parse
+end
+
 function getnodeproperties(node::Node)
     resp = request(node.properties, get, 200)
     resp.data |> JSON.parse
@@ -281,6 +288,21 @@ end
 
 function deleterel(rel::Relationship)
     request(rel.self, delete, 204)
+end
+
+function getrelproperty(rel::Relationship, name::String)
+    url = replace(rel.property, "{key}", name)
+    resp = request(url, get, 200)
+    resp.data |> JSON.parse
+end
+
+function getrelproperties(rel::Relationship)
+    resp = request(rel.properties, get, 200)
+    resp.data |> JSON.parse
+end
+
+function updaterelproperties(rel::Relationship, props::JSONObject)
+    request(rel.properties, put, 204; json=props)
 end
 
 end # module

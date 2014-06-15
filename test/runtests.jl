@@ -84,6 +84,14 @@ rel1alt = getrel(graph, rel1.id)
 @test rel1.data["b"] == 1
 @test rel1.id == rel1alt.id
 
+rel1prop = getrelproperties(rel1)
+@test rel1prop["a"] == "A"
+@test rel1prop["b"] == 1
+@test length(rel1prop) == 2
+
+@test getrelproperty(rel1, "a") == "A"
+@test getrelproperty(rel1, "b") == 1
+
 deleterel(rel1)
 @test_throws ErrorException, getrel(graph, rel1.id)
 
