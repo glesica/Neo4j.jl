@@ -1,5 +1,5 @@
 module Neo4j
-
+# Soma - working on fixing depreciated syntax
 using Requests
 using JSON
 
