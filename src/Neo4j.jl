@@ -81,7 +81,7 @@ function getgraph(conn::Connection)
     if resp.status !== 200
         error("Connection to server unsuccessful: $(resp.status)")
     end
-    Graph(resp.data |> JSON.parse, conn)
+    Graph(Requests.json(resp), conn)
 end
 
 function getgraph()
@@ -138,7 +138,7 @@ function request(url::String, method::Function, exp_code::Int;
         resp = method(url; headers=headers, json=json, query=query)
     end
     if resp.status !== exp_code
-        respdata = resp.data |> JSON.parse
+        respdata = Requests.json(resp)
         if respdata !== nothing && "message" in keys(respdata)
             error("Neo4j error: $(respdata["message"])")
         else
@@ -154,13 +154,13 @@ end
 
 function createnode(graph::Graph, props::JSONData=nothing)
     resp = request(graph.node, post, 201; json=props)
-    Node(resp.data |> JSON.parse, graph)
+    Node(Requests.json(resp), graph)
 end
 
 function getnode(graph::Graph, id::Int)
     url = "$(graph.node)/$id"
     resp = request(url, get, 200)
-    Node(resp.data |> JSON.parse, graph)
+    Node(Requests.json(resp), graph)
 end
 
 function getnode(node::Node)
@@ -193,12 +193,12 @@ end
 function getnodeproperty(node::Node, name::String)
     url = replace(node.property, "{key}", name)
     resp = request(url, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 function getnodeproperties(node::Node)
     resp = request(node.properties, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 function getnodeproperties(graph::Graph, id::Int)
@@ -234,19 +234,19 @@ end
 
 function getnodelabels(node::Node)
     resp = request(node.labels, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 function getnodesforlabel(graph::Graph, label::String, props::JSONObject=nothing)
     # TODO Shouldn't this url be available in the api somewhere?
     url = "$(graph.connection.url)label/$label/nodes"
     resp = request(url, get, 200; query=props)
-    [Node(nodedata, graph) for nodedata = JSON.parse(resp.data)]
+    [Node(nodedata, graph) for nodedata = Requests.json(resp)]
 end
 
 function getlabels(graph::Graph)
     resp = request(graph.node_labels, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 # -------------
@@ -276,7 +276,7 @@ end
 function getrel(graph::Graph, id::Int)
     url = "$(graph.relationship)/$id"
     resp = request(url, get, 200)
-    Relationship(resp.data |> JSON.parse, graph)
+    Relationship(Requests.json(resp), graph)
 end
 
 function createrel(from::Node, to::Node, reltype::String; props::JSONObject=nothing)
@@ -285,7 +285,7 @@ function createrel(from::Node, to::Node, reltype::String; props::JSONObject=noth
         body["data"] = props
     end
     resp = request(from.create_relationship, post, 201, json=body)
-    Relationship(resp.data |> JSON.parse, from.graph)
+    Relationship(Requests.json(resp), from.graph)
 end
 
 function deleterel(rel::Relationship)
@@ -295,12 +295,12 @@ end
 function getrelproperty(rel::Relationship, name::String)
     url = replace(rel.property, "{key}", name)
     resp = request(url, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 function getrelproperties(rel::Relationship)
     resp = request(rel.properties, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 function updaterelproperties(rel::Relationship, props::JSONObject)
