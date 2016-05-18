@@ -4,14 +4,14 @@ using Base.Test
 @test isdefined(:Neo4j) == true
 @test typeof(Neo4j) == Module
 
-graph = getgraph()
-@test beginswith(graph.version, "2") == true
+graph = getgraph("your_usrname","your_pswd")
+@test startswith(graph.version, "2.3.0") == true
 @test graph.node == "http://localhost:7474/db/data/node"
 
 barenode = createnode(graph)
 @test barenode.self == "http://localhost:7474/db/data/node/$(barenode.id)"
 
-propnode = createnode(graph, (String=>Any)["a" => "A", "b" => 1])
+propnode = createnode(graph, Dict{AbstractString,Any}("a" => "A", "b" => 1))
 @test propnode.data["a"] == "A"
 @test propnode.data["b"] == 1
 
@@ -29,7 +29,7 @@ props = getnodeproperties(propnode)
 @test props["b"] == 1
 @test length(props) == 2
 
-updatenodeproperties(barenode, (String=>Any)["a" => 1, "b" => "A"])
+updatenodeproperties(barenode, Dict{AbstractString,Any}("a" => 1, "b" => "A"))
 barenode = getnode(barenode)
 @test barenode.data["a"] == 1
 @test barenode.data["b"] == "A"
@@ -77,7 +77,7 @@ nodes = getnodesforlabel(graph, "E")
 labels = getlabels(graph)
 # TODO Can't really test this because there might be other crap in the local DB
 
-rel1 = createrel(barenode, propnode, "test"; props=(String=>Any)["a" => "A", "b" => 1])
+rel1 = createrel(barenode, propnode, "test"; props=Dict{AbstractString,Any}("a" => "A", "b" => 1))
 rel1alt = getrel(graph, rel1.id)
 @test rel1.reltype == "TEST"
 @test rel1.data["a"] == "A"
@@ -94,6 +94,7 @@ rel1prop = getrelproperties(rel1)
 
 deleterel(rel1)
 @test_throws ErrorException getrel(graph, rel1.id)
+#@test getrel(graph, rel1.id)
 
 deletenode(graph, barenode.id)
 deletenode(graph, propnode.id)

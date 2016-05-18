@@ -2,11 +2,14 @@ module Neo4j
 using Requests
 using JSON
 
+import Requests: get, post, put, delete, options
+
 export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperty,
        getnodeproperties, updatenodeproperties, deletenodeproperties, deletenodeproperty,
        addnodelabel, addnodelabels, updatenodelabels, deletenodelabel, getnodelabels,
        getnodesforlabel, getlabels, getrel, createrel, deleterel, getrelproperty,
-       getrelproperties, updaterelproperties
+       getrelproperties, updaterelproperties,
+       authenticate, updatefewnodeproperties, updatefewrelproperties
 
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
@@ -75,16 +78,42 @@ Graph(data::Dict{AbstractString,Any}, conn::Connection) = Graph(data["node"], da
     data["constraints"], data["transaction"], data["node_labels"], data["neo4j_version"], conn,
     "$(conn.url)relationship")
 
+
+function authenticate(conn::Connection;usrname="neo4j",pswd="neo4j")
+
+    rqst = string("http://",usrname,":",pswd,"@",conn.host,":",conn.port)
+    resp = get(rqst; headers=DEFAULT_HEADERS)
+
+    if resp.status == 401
+        error("Authorization unsuccessful: $(resp.status)")
+    end
+    if resp.status !== 200
+        error("Connection to server unsuccessful: $(resp.status)")
+    end
+
+    # Append usrname:passwd in Base64 to headers for Basic Authentication
+
+    # hardcoded the "usr:pswd" in Base64 format. Change this later
+    auth_string = base64encode("$usrname:$pswd")
+    get!(DEFAULT_HEADERS,"Authorization","Basic bmVvNGo6MXNUZXAxMjM=")
+end
+
 function getgraph(conn::Connection)
     resp = get(conn.url; headers=DEFAULT_HEADERS)
     if resp.status !== 200
         error("Connection to server unsuccessful: $(resp.status)")
     end
-    Graph(resp.data |> JSON.parse, conn)
+    Graph(Requests.json(resp), conn)
 end
 
-function getgraph()
-    getgraph(Connection())
+function getgraph(usrname::ASCIIString,pswd::ASCIIString)
+    conn = Connection()
+    authenticate(conn;usrname=usrname,pswd=pswd)
+    resp = get(conn.url; headers=DEFAULT_HEADERS)
+    if resp.status !== 200
+        error("Connection to server unsuccessful: $(resp.status)")
+    end
+    Graph(Requests.json(resp), conn)
 end
 
 # ----
@@ -124,7 +153,7 @@ Node(data::JSONObject, graph::Graph) = Node(data["paged_traverse"], data["labels
 # --------
 
 function request(url::AbstractString, method::Function, exp_code::Int;
-                 headers::Dict{Any,Any}=DEFAULT_HEADERS, json::JSONData=nothing,
+                 headers::Dict{AbstractString,AbstractString}=DEFAULT_HEADERS, json::JSONData=nothing,
                  query::QueryData=nothing)
     if json == nothing && query == nothing
         resp = method(url; headers=headers)
@@ -137,7 +166,7 @@ function request(url::AbstractString, method::Function, exp_code::Int;
         resp = method(url; headers=headers, json=json, query=query)
     end
     if resp.status !== exp_code
-        respdata = resp.data |> JSON.parse
+        respdata = Requests.json(resp)
         if respdata !== nothing && "message" in keys(respdata)
             error("Neo4j error: $(respdata["message"])")
         else
@@ -153,13 +182,13 @@ end
 
 function createnode(graph::Graph, props::JSONData=nothing)
     resp = request(graph.node, post, 201; json=props)
-    Node(resp.data |> JSON.parse, graph)
+    Node(Requests.json(resp), graph)
 end
 
 function getnode(graph::Graph, id::Int)
     url = "$(graph.node)/$id"
     resp = request(url, get, 200)
-    Node(resp.data |> JSON.parse, graph)
+    Node(Requests.json(resp), graph)
 end
 
 function getnode(node::Node)
@@ -185,19 +214,38 @@ function setnodeproperty(graph::Graph, id::Int, name::AbstractString, value::Any
     setnodeproperty(node, name, value)
 end
 
+
+function updatefewnodeproperties(graph::Graph, id::Int, props::JSONObject)
+  node = getnode(g,id)
+  for prop in keys(props)
+    url = replace(node.property, "{key}", prop)
+    request(url, put, 204; json=props[prop])
+  end
+end
+
+function updatefewnodeproperties(node::Node, props::JSONObject)
+  for prop in keys(props)
+    url = replace(node.property, "{key}", prop)
+    request(url, put, 204; json=props[prop])
+  end
+end
+
+
 function updatenodeproperties(node::Node, props::JSONObject)
+    # it is an overwrite: this will erase all old properties and writes new ones
+    # Neo4j API specifies the same:
     resp = request(node.properties, put, 204; json=props)
 end
 
 function getnodeproperty(node::Node, name::AbstractString)
     url = replace(node.property, "{key}", name)
     resp = request(url, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 function getnodeproperties(node::Node)
     resp = request(node.properties, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 function getnodeproperties(graph::Graph, id::Int)
@@ -233,19 +281,19 @@ end
 
 function getnodelabels(node::Node)
     resp = request(node.labels, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 function getnodesforlabel(graph::Graph, label::AbstractString, props::JSONObject=nothing)
     # TODO Shouldn't this url be available in the api somewhere?
     url = "$(graph.connection.url)label/$label/nodes"
     resp = request(url, get, 200; query=props)
-    [Node(nodedata, graph) for nodedata = JSON.parse(resp.data)]
+    [Node(nodedata, graph) for nodedata = Requests.json(resp)]
 end
 
 function getlabels(graph::Graph)
     resp = request(graph.node_labels, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 # -------------
@@ -275,16 +323,16 @@ end
 function getrel(graph::Graph, id::Int)
     url = "$(graph.relationship)/$id"
     resp = request(url, get, 200)
-    Relationship(resp.data |> JSON.parse, graph)
+    Relationship(Requests.json(resp), graph)
 end
 
 function createrel(from::Node, to::Node, reltype::AbstractString; props::JSONObject=nothing)
-    body = Dict{AbstractString=>Any}["to" => to.self, "type" => uppercase(reltype)]
+    body = Dict{AbstractString,Any}("to" => to.self, "type" => uppercase(reltype))
     if props !== nothing
         body["data"] = props
     end
     resp = request(from.create_relationship, post, 201, json=body)
-    Relationship(resp.data |> JSON.parse, from.graph)
+    Relationship(Requests.json(resp), from.graph)
 end
 
 function deleterel(rel::Relationship)
@@ -294,16 +342,28 @@ end
 function getrelproperty(rel::Relationship, name::AbstractString)
     url = replace(rel.property, "{key}", name)
     resp = request(url, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
 end
 
 function getrelproperties(rel::Relationship)
     resp = request(rel.properties, get, 200)
-    resp.data |> JSON.parse
+    Requests.json(resp)
+end
+
+# TBD
+function updatefewrelproperties(rel::Relationship, props::JSONObject)
+    # loop through all properties one at-a-time and update each of them
+    for prop in keys(props)
+      url = replace(rel.property, "{key}", prop)
+      request(url, put, 204; json=props[prop])
+    end
 end
 
 function updaterelproperties(rel::Relationship, props::JSONObject)
+    # the following is basically overwrite (a misnomer and Neo4j API calls it the same way).
+    # ALL old property fields will be erased and new ones are written back
     request(rel.properties, put, 204; json=props)
 end
+
 
 end # module
