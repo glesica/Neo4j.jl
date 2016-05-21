@@ -22,7 +22,7 @@ function transaction(conn::Connection)
 
   resp = post(url; headers=headers, json=body)
   if resp.status != 201
-    error("Failed to connect to database ($(resp.status)): $(conn)")
+    error("Failed to connect to database ($(resp.status)): $(conn)\n$(resp)")
   end
   respdata = json(resp)
   
@@ -40,7 +40,7 @@ function call(txn::Transaction, cypher::AbstractString, params::Pair...;
     resp = post(url; headers=headers, json=body)
 
     if resp.status != 200
-      error("Failed to submit transaction ($(resp.status)): $(txn)")
+      error("Failed to submit transaction ($(resp.status)): $(txn)\n$(resp)")
     end
     respdata = json(resp)
 
@@ -59,7 +59,7 @@ function commit(txn::Transaction)
   resp = post(url; headers=headers, json=body)
   
   if resp.status != 200
-    error("Failed to commit transaction ($(resp.status)): $(txn)")
+    error("Failed to commit transaction ($(resp.status)): $(txn)\n$(resp)")
   end
   respdata = json(resp)
 
@@ -72,7 +72,7 @@ function rollback(txn::Transaction)
 
   resp = delete(url; headers=headers)
   if resp.status != 200
-    error("Failed to rollback transaction ($(resp.status)): $(txn)")
+    error("Failed to rollback transaction ($(resp.status)): $(txn)\n$(resp)")
   end
 end
 
