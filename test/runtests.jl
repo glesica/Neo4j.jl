@@ -1,101 +1,67 @@
 using Neo4j
 using Base.Test
 
-@test isdefined(:Neo4j) == true
-@test typeof(Neo4j) == Module
+c = Connection("localhost"; user="neo4j", password="neo4j")
 
-graph = getgraph()
-@test beginswith(graph.version, "2") == true
-@test graph.node == "http://localhost:7474/db/data/node"
+loadtx = transaction(c)
 
-barenode = createnode(graph)
-@test barenode.self == "http://localhost:7474/db/data/node/$(barenode.id)"
+function createnode(txn, name, age; submit=false)
+  q = "CREATE (n:Neo4jjl) SET n.name = {name}, n.age = {age}"
+  txn(q, "name" => name, "age" => age; submit=submit)
+end
 
-propnode = createnode(graph, (String=>Any)["a" => "A", "b" => 1])
-@test propnode.data["a"] == "A"
-@test propnode.data["b"] == 1
+@test length(loadtx.statements) == 0
 
-gotnode = getnode(graph, propnode.id)
-@test gotnode.id == propnode.id
-@test gotnode.data["a"] == "A"
-@test gotnode.data["b"] == 1
+createnode(loadtx, "John Doe", 20)
 
-setnodeproperty(barenode, "a", "A")
-barenode = getnode(barenode)
-@test barenode.data["a"] == "A"
+@test length(loadtx.statements) == 1
 
-props = getnodeproperties(propnode)
-@test props["a"] == "A"
-@test props["b"] == 1
-@test length(props) == 2
+createnode(loadtx, "Jane Doe", 20)
 
-updatenodeproperties(barenode, (String=>Any)["a" => 1, "b" => "A"])
-barenode = getnode(barenode)
-@test barenode.data["a"] == 1
-@test barenode.data["b"] == "A"
+@test length(loadtx.statements) == 2
 
-deletenodeproperties(barenode)
-barenode = getnode(barenode)
-@test length(barenode.data) == 0
+people = loadtx("MATCH (n:Neo4jjl) WHERE n.age = {age} RETURN n.name", "age" => 20; submit=true)
 
-deletenodeproperty(propnode, "b")
-propnode = getnode(propnode)
-@test length(propnode.data) == 1
-@test propnode.data["a"] == "A"
+@test length(loadtx.statements) == 0
+@test length(people.results) == 3
+@test length(people.errors) == 0
 
-addnodelabel(barenode, "A")
-barenode = getnode(barenode)
-@test getnodelabels(barenode) == ["A"]
+matchresult = people.results[3]
+@test matchresult["columns"][1] == "n.name"
+@test "John Doe" in [row["row"][1] for row = matchresult["data"]]
+@test "Jane Doe" in [row["row"][1] for row = matchresult["data"]]
 
-addnodelabels(barenode, ["B", "C"])
-barenode = getnode(barenode)
-labels = getnodelabels(barenode)
-@test "A" in labels
-@test "B" in labels
-@test "C" in labels
-@test length(labels) == 3
+loadresult = commit(loadtx)
 
-updatenodelabels(barenode, ["D", "E", "F"])
-barenode = getnode(barenode)
-labels = getnodelabels(barenode)
-@test "D" in labels
-@test "E" in labels
-@test "F" in labels
-@test length(labels) == 3
+@test length(loadresult.results) == 0
+@test length(loadresult.errors) == 0
 
-deletenodelabel(barenode, "D")
-barenode = getnode(barenode)
-labels = getnodelabels(barenode)
-@test "E" in labels
-@test "F" in labels
-@test length(labels) == 2
+deletetx = transaction(c)
 
-nodes = getnodesforlabel(graph, "E")
-@test length(nodes) > 0
-@test barenode.id in [n.id for n = nodes]
+deletetx("MATCH (n:Neo4jjl) WHERE n.age = {age} DELETE n", "age" => 20)
 
-labels = getlabels(graph)
-# TODO Can't really test this because there might be other crap in the local DB
+deleteresult = commit(deletetx)
 
-rel1 = createrel(barenode, propnode, "test"; props=(String=>Any)["a" => "A", "b" => 1])
-rel1alt = getrel(graph, rel1.id)
-@test rel1.reltype == "TEST"
-@test rel1.data["a"] == "A"
-@test rel1.data["b"] == 1
-@test rel1.id == rel1alt.id
+@test length(deleteresult.results) == 1
+@test length(deleteresult.results[1]["columns"]) == 0
+@test length(deleteresult.results[1]["data"]) == 0
+@test length(deleteresult.errors) == 0
 
-rel1prop = getrelproperties(rel1)
-@test rel1prop["a"] == "A"
-@test rel1prop["b"] == 1
-@test length(rel1prop) == 2
+rolltx = transaction(c)
 
-@test getrelproperty(rel1, "a") == "A"
-@test getrelproperty(rel1, "b") == 1
+person = createnode(rolltx, "John Doe", 20; submit=true)
 
-deleterel(rel1)
-@test_throws ErrorException getrel(graph, rel1.id)
+@test length(rolltx.statements) == 0
+@test length(person.results) == 1
+@test length(person.errors) == 0
 
-deletenode(graph, barenode.id)
-deletenode(graph, propnode.id)
-@test_throws ErrorException getnode(graph, barenode.id)
-@test_throws ErrorException getnode(graph, propnode.id)
+rollback(rolltx)
+
+rolltx = transaction(c)
+rollresult = rolltx("MATCH (n:Neo4jjl) WHERE n.name = 'John Doe' RETURN n"; submit=true)
+
+@test length(rollresult.results) == 1
+@test length(rollresult.results[1]["columns"]) == 1
+@test length(rollresult.results[1]["data"]) == 0
+@test length(rollresult.errors) == 0
+

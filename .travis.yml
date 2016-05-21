@@ -1,15 +1,12 @@
-language: cpp
-compiler:
-  - clang
+language: julia
+julia:
+  - release
+  - nightly
 notifications:
   email: false
 before_install:
-  - sudo add-apt-repository ppa:staticfloat/julia-deps -y
-  - sudo add-apt-repository ppa:staticfloat/julianightlies -y
-  - sudo wget -O - http://debian.neo4j.org/neotechnology.gpg.key | sudo apt-key add -
-  - echo 'deb http://debian.neo4j.org/repo stable/' | sudo tee /etc/apt/sources.list.d/neo4j.list
-  - sudo apt-get update -qq -y
-  - sudo apt-get install libpcre3-dev julia neo4j -y
-script:
-  - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir("Neo4j"))`); Pkg.pin("Neo4j"); Pkg.resolve()'
-  - julia test/runtests.jl
+  - wget dist.neo4j.org/neo4j-community-2.3.4-unix.tar.gz
+  - tar -xzf neo4j-community-2.3.4-unix.tar.gz
+  - sed -i 's/#dbms.security.auth_enabled=false/dbms.security.auth_enabled=false/g' neo4j-community-2.3.4/conf/neo4j-server.properties
+  - sed -i 's/dbms.security.auth_enabled=true/dbms.security.auth_enabled=false/g' neo4j-community-2.3.4/conf/neo4j-server.properties
+  - neo4j-community-2.3.4/bin/neo4j start
