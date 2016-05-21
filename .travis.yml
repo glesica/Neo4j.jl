@@ -5,9 +5,8 @@ julia:
 notifications:
   email: false
 before_install:
-  - sudo apt-get install -y openjdk-8-jre-headless
-  - wget dist.neo4j.org/neo4j-community-3.0.1-unix.tar.gz
-  - tar -xzf neo4j-community-3.0.1-unix.tar.gz
-  - sed -i 's/#dbms.security.auth_enabled=false/dbms.security.auth_enabled=false/g' neo4j-community-3.0.1/conf/neo4j.conf
-  - sed -i 's/dbms.security.auth_enabled=true/dbms.security.auth_enabled=false/g' neo4j-community-3.0.1/conf/neo4j.conf
-  - neo4j-community-3.0.1/bin/neo4j start
+  - wget dist.neo4j.org/neo4j-community-2.3.4-unix.tar.gz
+  - tar -xzf neo4j-community-2.3.4-unix.tar.gz
+  - sed -i 's/#dbms.security.auth_enabled=false/dbms.security.auth_enabled=false/g' neo4j-community-2.3.4/conf/neo4j-server.properties
+  - sed -i 's/dbms.security.auth_enabled=true/dbms.security.auth_enabled=false/g' neo4j-community-2.3.4/conf/neo4j-server.properties
+  - neo4j-community-2.3.4/bin/neo4j start
