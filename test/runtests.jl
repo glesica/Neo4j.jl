@@ -1,6 +1,5 @@
+using Neo4j
 using Base.Test
-
-include("../src/neo4j.jl")
 
 c = Connection("localhost"; user="neo4j", password="neo4j")
 
@@ -13,15 +12,15 @@ end
 
 @test length(loadtx.statements) == 0
 
-loadtx = createnode(loadtx, "John Doe", 20)
+createnode(loadtx, "John Doe", 20)
 
 @test length(loadtx.statements) == 1
 
-loadtx = createnode(loadtx, "Jane Doe", 20)
+createnode(loadtx, "Jane Doe", 20)
 
 @test length(loadtx.statements) == 2
 
-loadtx, people = loadtx("MATCH (n:Neo4jjl) WHERE n.age = {age} RETURN n.name", "age" => 20; submit=true)
+people = loadtx("MATCH (n:Neo4jjl) WHERE n.age = {age} RETURN n.name", "age" => 20; submit=true)
 
 @test length(loadtx.statements) == 0
 @test length(people.results) == 3
@@ -39,7 +38,7 @@ loadresult = commit(loadtx)
 
 deletetx = transaction(c)
 
-deletetx = deletetx("MATCH (n:Neo4jjl) WHERE n.age = {age} DELETE n", "age" => 20)
+deletetx("MATCH (n:Neo4jjl) WHERE n.age = {age} DELETE n", "age" => 20)
 
 deleteresult = commit(deletetx)
 

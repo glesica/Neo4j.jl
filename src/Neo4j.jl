@@ -1,5 +1,7 @@
 # Basic Neo4j database driver that uses the HTTP Cypher API.
 
+module Neo4j
+
 import Requests: get, post, delete, json
 
 export Connection, Result
@@ -68,3 +70,4 @@ end
 
 include("transaction.jl")
 
+end

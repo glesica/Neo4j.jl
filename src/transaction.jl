@@ -47,9 +47,7 @@ function call(txn::Transaction, cypher::AbstractString, params::Pair...;
     empty!(txn.statements)
     result = Result(respdata["results"], respdata["errors"])
 
-    txn, result
-  else
-    txn
+    result
   end
 end
 
