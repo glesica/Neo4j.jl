@@ -7,5 +7,5 @@ notifications:
 before_install:
   - sudo service neo4j start
   # Stupid hack - change the password then change it back
-  - curl -v -X POST http://neo4j:neo4j@localhost:7474/user/neo4j/password -d"password=bogus"
-  - curl -v -X POST http://neo4j:bogus@localhost:7474/user/neo4j/password -d"password=neo4j"
+  - curl -v -X POST http://neo4j:neo4j@localhost:7474/user/neo4j/password -d'{"password":"bogus"}' -H"Content-Type: application/json" -H"Accept: application/json; charset=UTF-8"
+  - curl -v -X POST http://neo4j:bogus@localhost:7474/user/neo4j/password -d'{"password":"neo4j"}' -H"Content-Type: application/json" -H"Accept: application/json; charset=UTF-8"
