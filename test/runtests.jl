@@ -5,9 +5,9 @@ c = Connection("localhost"; user="neo4j", password="neo4j")
 
 loadtx = transaction(c)
 
-function createnode(txn, name, age)
+function createnode(txn, name, age; submit=false)
   q = "CREATE (n:Neo4jjl) SET n.name = {name}, n.age = {age}"
-  txn(q, "name" => name, "age" => age)
+  txn(q, "name" => name, "age" => age; submit=submit)
 end
 
 @test length(loadtx.statements) == 0
@@ -46,4 +46,22 @@ deleteresult = commit(deletetx)
 @test length(deleteresult.results[1]["columns"]) == 0
 @test length(deleteresult.results[1]["data"]) == 0
 @test length(deleteresult.errors) == 0
+
+rolltx = transaction(c)
+
+person = createnode(rolltx, "John Doe", 20; submit=true)
+
+@test length(rolltx.statements) == 0
+@test length(person.results) == 1
+@test length(person.errors) == 0
+
+rollback(rolltx)
+
+rolltx = transaction(c)
+rollresult = rolltx("MATCH (n:Neo4jjl) WHERE n.name = 'John Doe' RETURN n"; submit=true)
+
+@test length(rollresult.results) == 1
+@test length(rollresult.results[1]["columns"]) == 1
+@test length(rollresult.results[1]["data"]) == 0
+@test length(rollresult.errors) == 0
 
