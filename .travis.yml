@@ -5,7 +5,8 @@ julia:
 notifications:
   email: false
 before_install:
-  # Turn off Neo4j auth
-  - sed -i 's/dbms.security.auth_enabled=true/dbms.security.auth_enabled=false/' /etc/neo4j/neo4j.conf
-  # Start Neo4j
-  - sudo service neo4j start
+  - wget dist.neo4j.org/neo4j-community-3.0.1-unix.tar.gz
+  - tar -xzf neo4j-community-3.0.1-unix.tar.gz
+  - sed -i 's/#dbms.security.auth_enabled=false/dbms.security.auth_enabled=false/g' neo4j-community-3.0.1/conf/neo4j.conf
+  - sed -i 's/dbms.security.auth_enabled=true/dbms.security.auth_enabled=false/g' neo4j-community-3.0.1/conf/neo4j.conf
+  - neo4j-community-3.0.1/bin/neo4j start
