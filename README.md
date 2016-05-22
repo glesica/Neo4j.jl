@@ -10,14 +10,17 @@ database.
 ```julia
 c = Connection("localhost"; user="neo4j", password="neo4j")
 tx = transaction(c)
-tx = tx("MATCH (n) RETURN n LIMIT {limit}", "limit" => 10)
+tx("CREATE (n:Lang) SET n.name = '{name}'", "name" => "Julia")
+tx("MATCH (n:Lang) RETURN n LIMIT {limit}", "limit" => 10)
 results = commit(tx)
 ```
 
-You can also submit a transaction to the server without committing it:
+You can also submit a transaction to the server without committing it. This
+will return a result set but will keep the transaction open both on the client
+and server:
 
 ```julia
-tx, results = tx("MATCH (n) RETURN n"; submit=true)
+results = tx("MATCH (n) RETURN n"; submit=true)
 ```
 
 Rollbacks are also supported:
@@ -25,3 +28,4 @@ Rollbacks are also supported:
 ```julia
 rollback(tx)
 ```
+
