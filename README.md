@@ -39,7 +39,7 @@ Create a node with some properties
 ```julia
 propnode = createnode(graph, Dict{AbstractString,Any}("a" => "A", "b" => 1))
 ```
-Create a node with some properties
+Create nodes with some properties
 ```julia
 from = createnode(graph, Dict{AbstractString,Any}("a" => "A", "b" => 1))
 to = createnode(graph)
@@ -50,11 +50,11 @@ addnodelabel(from, "A")
 ```
 Create a relationships
 ```julia
-rel = createrel(from, to, "test"; props=Dict{AbstractString,Any}("a" => "A", "b" => 1)) pro
+rel = createrel(from, to, "test"; props=Dict{AbstractString,Any}("a" => "A", "b" => 1))
 ```
 Update relationship property
 ```julia
-updaterelproperties(rel1,Dict{AbstractString,Any}("a" => "AA","b"=>"BB"))
+updaterelproperties(rel,Dict{AbstractString,Any}("a" => "AA","b"=>"BB"))
 ```
 
 check the tests for more examples
