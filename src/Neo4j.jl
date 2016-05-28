@@ -290,7 +290,7 @@ function updatefewnodeproperties(graph::Graph, id::Int, props::JSONObject)
 end
 
 function updatefewnodeproperties(node::Node, props::JSONObject)
-  header =  graph.connection.header
+  header =  node.graph.connection.header
   for prop in keys(props)
     url = replace(node.property, "{key}", prop)
     request(url, put, 204,header; json=props[prop])

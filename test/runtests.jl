@@ -70,7 +70,7 @@ rollresult = rolltx("MATCH (n:Neo4jjl) WHERE n.name = 'John Doe' RETURN n"; subm
 @test isdefined(:Neo4j) == true
 @test typeof(Neo4j) == Module
 
-graph = getgraph("neo4j","1sTep123")
+graph = getgraph("neo4j","neo4j")
 @test startswith(graph.version, "2.3.0") == true
 @test graph.node == "http://localhost:7474/db/data/node"
 
@@ -99,6 +99,12 @@ updatenodeproperties(barenode, Dict{AbstractString,Any}("a" => 1, "b" => "A"))
 barenode = getnode(barenode)
 @test barenode.data["a"] == 1
 @test barenode.data["b"] == "A"
+
+updatefewnodeproperties(barenode, Dict{AbstractString,Any}("a" => 2))
+barenode = getnode(barenode)
+@test barenode.data["a"] == 2
+@test barenode.data["b"] == "A"
+
 
 deletenodeproperties(barenode)
 barenode = getnode(barenode)
@@ -157,6 +163,16 @@ rel1prop = getrelproperties(rel1)
 
 @test getrelproperty(rel1, "a") == "A"
 @test getrelproperty(rel1, "b") == 1
+
+updaterelproperties(rel1,Dict{AbstractString,Any}("a" => "AA","b"=>"BB"))
+@test getrelproperty(rel1, "a") == "AA"
+@test getrelproperty(rel1, "b") == "BB"
+
+updatefewrelproperties(rel1,Dict{AbstractString,Any}("a" => "A"))
+@test getrelproperty(rel1, "a") == "A"
+@test getrelproperty(rel1, "b") == "BB"
+
+
 
 deleterel(rel1)
 @test_throws ErrorException getrel(graph, rel1.id)
