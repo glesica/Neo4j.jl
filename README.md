@@ -1,7 +1,11 @@
 # Neo4j.jl
 
-[![Build Status](https://travis-ci.org/glesica/Neo4j.jl.png)](https://travis-ci.org/glesica/Neo4j.jl)
+![GitHub Logo](/logo.png)
 
-A REST client for the [Neo4j](http://neo4j.org) graph database. Documentation to
-follow soon-ish. For now, you can have a look at the test file to see how it is
-used. Note that this is crazy alpha-level code, the API **will** change.
+Forked from https://github.com/glesica/Neo4j.jl
+
+[![Build Status](https://travis-ci.org/GearsAD/Neo4j.jl.png)](https://travis-ci.org/GearsAD/Neo4j.jl)
+
+A REST client for the [Neo4j](http://neo4j.org) graph database. Used in the CloudGraphs project (https://github.com/GearsAD/CloudGraphs.jl).
+
+Really easy to use, have a look at ```test/runtests.jl``` for the available methods.
