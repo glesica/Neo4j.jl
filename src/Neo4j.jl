@@ -93,7 +93,7 @@ end
 # Node
 # ----
 
-type Node
+immutable Node
     # TODO extensions
     paged_traverse::UTF8String
     labels::UTF8String
