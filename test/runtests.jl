@@ -4,49 +4,74 @@ using Base.Test
 @test isdefined(:Neo4j) == true
 @test typeof(Neo4j) == Module
 
+print("[TEST] Creating a Neo4j connection to localhost:7474...");
 graph = getgraph()
-@test beginswith(graph.version, "2") == true
-@test graph.node == "http://localhost:7474/db/data/node"
+println("Success!");
 
+print("[TEST] Checking version of connected graph = Neo4j ", ascii(graph.version))
+# Have to account for newer Neo4j! Using version text - ref: http://docs.julialang.org/en/release-0.4/manual/strings/
+@test convert(VersionNumber, graph.version) >  v"2.0.0"
+# Check that
+@test graph.node == "http://localhost:7474/db/data/node"
+println("Success!");
+
+print("[TEST] Creating a node...");
 barenode = createnode(graph)
 @test barenode.self == "http://localhost:7474/db/data/node/$(barenode.id)"
+println("Success!");
 
-propnode = createnode(graph, (String=>Any)["a" => "A", "b" => 1])
+print("[TEST] Creating a node with properties...");
+propnode = createnode(graph, Dict{UTF8String,Any}("a" => "A", "b" => 1))
 @test propnode.data["a"] == "A"
 @test propnode.data["b"] == 1
+println("Success!");
 
+print("[TEST] Retrieving the created node...");
 gotnode = getnode(graph, propnode.id)
 @test gotnode.id == propnode.id
 @test gotnode.data["a"] == "A"
 @test gotnode.data["b"] == 1
+println("Success!");
 
+print("[TEST] Setting node properties...");
 setnodeproperty(barenode, "a", "A")
 barenode = getnode(barenode)
 @test barenode.data["a"] == "A"
+println("Success!");
 
+print("[TEST] Getting node properties...");
 props = getnodeproperties(propnode)
 @test props["a"] == "A"
 @test props["b"] == 1
 @test length(props) == 2
+println("Success!");
 
-updatenodeproperties(barenode, (String=>Any)["a" => 1, "b" => "A"])
+print("[TEST] Updating node properties...");
+updatenodeproperties(barenode, Dict{UTF8String,Any}("a" => 1, "b" => "A"))
 barenode = getnode(barenode)
 @test barenode.data["a"] == 1
 @test barenode.data["b"] == "A"
 
+print("[TEST] Deleting node properties...");
 deletenodeproperties(barenode)
 barenode = getnode(barenode)
 @test length(barenode.data) == 0
+println("Success!");
 
+print("[TEST] Deleting a specific property...");
 deletenodeproperty(propnode, "b")
 propnode = getnode(propnode)
 @test length(propnode.data) == 1
 @test propnode.data["a"] == "A"
+println("Success!");
 
+print("[TEST] Adding a node label...")
 addnodelabel(barenode, "A")
 barenode = getnode(barenode)
 @test getnodelabels(barenode) == ["A"]
+println("Success!");
 
+print("[TEST] Adding multiple node labels...")
 addnodelabels(barenode, ["B", "C"])
 barenode = getnode(barenode)
 labels = getnodelabels(barenode)
@@ -54,7 +79,9 @@ labels = getnodelabels(barenode)
 @test "B" in labels
 @test "C" in labels
 @test length(labels) == 3
+println("Success!");
 
+print("[TEST] Updating node labels...")
 updatenodelabels(barenode, ["D", "E", "F"])
 barenode = getnode(barenode)
 labels = getnodelabels(barenode)
@@ -62,40 +89,54 @@ labels = getnodelabels(barenode)
 @test "E" in labels
 @test "F" in labels
 @test length(labels) == 3
+println("Success!");
 
+print("[TEST] Deleting a node label...")
 deletenodelabel(barenode, "D")
 barenode = getnode(barenode)
 labels = getnodelabels(barenode)
 @test "E" in labels
 @test "F" in labels
 @test length(labels) == 2
+println("Success!");
 
+print("[TEST] Getting nodes for a given label...")
 nodes = getnodesforlabel(graph, "E")
 @test length(nodes) > 0
 @test barenode.id in [n.id for n = nodes]
+println("Success!");
 
+print("[TEST] Getting all labels...")
 labels = getlabels(graph)
 # TODO Can't really test this because there might be other crap in the local DB
+println("Success!");
 
-rel1 = createrel(barenode, propnode, "test"; props=(String=>Any)["a" => "A", "b" => 1])
-rel1alt = getrel(graph, rel1.id)
+print("[TEST] Creating a relationship...")
+rel1 = createrel(barenode, propnode, "test"; props=Dict{UTF8String,Any}("a" => "A", "b" => 1));
+rel1alt = getrel(graph, rel1.id);
 @test rel1.reltype == "TEST"
 @test rel1.data["a"] == "A"
 @test rel1.data["b"] == 1
 @test rel1.id == rel1alt.id
+println("Success!");
 
-rel1prop = getrelproperties(rel1)
+print("[TEST] Getting relationship properties...")
+rel1prop = getrelproperties(rel1);
 @test rel1prop["a"] == "A"
 @test rel1prop["b"] == 1
 @test length(rel1prop) == 2
-
 @test getrelproperty(rel1, "a") == "A"
 @test getrelproperty(rel1, "b") == 1
+println("Success!");
 
+print("[TEST] Deleting a relationship...")
 deleterel(rel1)
 @test_throws ErrorException getrel(graph, rel1.id)
+println("Success!");
 
+print("[TEST] Deleting a node...")
 deletenode(graph, barenode.id)
 deletenode(graph, propnode.id)
 @test_throws ErrorException getnode(graph, barenode.id)
 @test_throws ErrorException getnode(graph, propnode.id)
+println("Success!");

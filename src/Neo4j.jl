@@ -12,20 +12,20 @@ export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getn
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
 const DEFAULT_URI = "/db/data/"
-const DEFAULT_HEADERS = {"Accept" => "application/json; charset=UTF-8", "Host" => "localhost:7474"}
+const DEFAULT_HEADERS = Dict{Any, Any}("Accept" => "application/json; charset=UTF-8", "Host" => "localhost:7474")
 
-typealias JSONObject Union(Dict{String,Any},Nothing)
-typealias JSONArray Union(Vector,Nothing)
-typealias JSONData Union(JSONObject,JSONArray,String,Number,Nothing)
+typealias JSONObject Union{Dict{UTF8String,Any},Void}
+typealias JSONArray Union{Vector,Void}
+typealias JSONData Union{JSONObject,JSONArray,AbstractString,Number,Void}
 
-typealias QueryData Union(Dict{Any,Any},Nothing)
+typealias QueryData Union{Dict{Any,Any},Void}
 
 # -----------------------
 # Relationship Directions
 # -----------------------
 
 immutable Direction
-    dir::String
+    dir::UTF8String
 end
 
 const inrels = Direction("in")
@@ -37,16 +37,16 @@ const bothrels = Direction("both")
 # ----------
 
 immutable Connection
-    host::String
+    host::UTF8String
     port::Int
-    path::String
-    url::String
+    path::UTF8String
+    url::UTF8String
 
-    Connection(host::String, port::Int, path::String) = new(host, port, path, "http://$host:$port$path")
+    Connection(host::AbstractString, port::Int, path::AbstractString) = new(utf8(host), port, utf8(path), utf8("http://$host:$port$path"))
 end
 
-Connection(host::String, port::Int) = Connection(host, port, DEFAULT_URI)
-Connection(host::String) = Connection(host, DEFAULT_PORT)
+Connection(host::AbstractString, port::Int) = Connection(host, port, DEFAULT_URI)
+Connection(host::AbstractString) = Connection(host, DEFAULT_PORT)
 Connection() = Connection(DEFAULT_HOST)
 
 # -----
@@ -55,23 +55,23 @@ Connection() = Connection(DEFAULT_HOST)
 
 immutable Graph
     # TODO extensions
-    node::String
-    node_index::String
-    relationship_index::String
-    extensions_info::String
-    relationship_types::String
-    batch::String
-    cypher::String
-    indexes::String
-    constraints::String
-    transaction::String
-    node_labels::String
-    version:: String
+    node::UTF8String
+    node_index::UTF8String
+    relationship_index::UTF8String
+    extensions_info::UTF8String
+    relationship_types::UTF8String
+    batch::UTF8String
+    cypher::UTF8String
+    indexes::UTF8String
+    constraints::UTF8String
+    transaction::UTF8String
+    node_labels::UTF8String
+    version::UTF8String
     connection::Connection
-    relationship::String # Not in the spec
+    relationship::UTF8String # Not in the spec
 end
 
-Graph(data::Dict{String,Any}, conn::Connection) = Graph(data["node"], data["node_index"], data["relationship_index"],
+Graph(data::Dict{UTF8String,Any}, conn::Connection) = Graph(data["node"], data["node_index"], data["relationship_index"],
     data["extensions_info"], data["relationship_types"], data["batch"], data["cypher"], data["indexes"],
     data["constraints"], data["transaction"], data["node_labels"], data["neo4j_version"], conn,
     "$(conn.url)relationship")
@@ -81,6 +81,7 @@ function getgraph(conn::Connection)
     if resp.status !== 200
         error("Connection to server unsuccessful: $(resp.status)")
     end
+    #Note the Requests lib returns UTF8String, so lets just use that as a standard for REST calls [GearsAD]
     Graph(Requests.json(resp), conn)
 end
 
@@ -92,39 +93,42 @@ end
 # Node
 # ----
 
-immutable Node
+type Node
     # TODO extensions
-    paged_traverse::String
-    labels::String
-    outgoing_relationships::String
-    traverse::String
-    all_typed_relationships::String
-    all_relationships::String
-    property::String
-    self::String
-    outgoing_typed_relationships::String
-    properties::String
-    incoming_relationships::String
-    incoming_typed_relationships::String
-    create_relationship::String
+    paged_traverse::UTF8String
+    labels::UTF8String
+    outgoing_relationships::UTF8String
+    traverse::UTF8String
+    all_typed_relationships::UTF8String
+    all_relationships::UTF8String
+    property::UTF8String
+    self::UTF8String
+    outgoing_typed_relationships::UTF8String
+    properties::UTF8String
+    incoming_relationships::UTF8String
+    incoming_typed_relationships::UTF8String
+    create_relationship::UTF8String
     data::JSONObject
-    id::Int
+    id::Int64
     graph::Graph
+
+    #Constructors
+    Node() = new()
+    Node(data::JSONObject, graph::Graph) = new(data["paged_traverse"], data["labels"],
+         data["outgoing_relationships"], data["traverse"], data["all_typed_relationships"],
+         data["all_relationships"], data["property"],
+         data["self"], data["outgoing_typed_relationships"], data["properties"],
+         data["incoming_relationships"], data["incoming_typed_relationships"],
+         data["create_relationship"], data["data"],
+         split(data["self"], "/")[end] |> parse, graph)
 end
 
-Node(data::JSONObject, graph::Graph) = Node(data["paged_traverse"], data["labels"],
-     data["outgoing_relationships"], data["traverse"], data["all_typed_relationships"],
-     data["all_relationships"], data["property"],
-     data["self"], data["outgoing_typed_relationships"], data["properties"],
-     data["incoming_relationships"], data["incoming_typed_relationships"],
-     data["create_relationship"], data["data"],
-     split(data["self"], "/")[end] |> int, graph)
 
 # --------
 # Requests
 # --------
 
-function request(url::String, method::Function, exp_code::Int;
+function request(url::AbstractString, method::Function, exp_code::Int;
                  headers::Dict{Any,Any}=DEFAULT_HEADERS, json::JSONData=nothing,
                  query::QueryData=nothing)
     if json == nothing && query == nothing
@@ -176,12 +180,12 @@ function deletenode(graph::Graph, id::Int)
     deletenode(node)
 end
 
-function setnodeproperty(node::Node, name::String, value::Any)
+function setnodeproperty(node::Node, name::AbstractString, value::Any)
     url = replace(node.property, "{key}", name)
     request(url, Requests.put, 204; json=value)
 end
 
-function setnodeproperty(graph::Graph, id::Int, name::String, value::Any)
+function setnodeproperty(graph::Graph, id::Int, name::AbstractString, value::Any)
     node = getnode(graph, id)
     setnodeproperty(node, name, value)
 end
@@ -190,7 +194,7 @@ function updatenodeproperties(node::Node, props::JSONObject)
     resp = request(node.properties, Requests.put, 204; json=props)
 end
 
-function getnodeproperty(node::Node, name::String)
+function getnodeproperty(node::Node, name::AbstractString)
     url = replace(node.property, "{key}", name)
     resp = request(url, Requests.get, 200)
     Requests.json(resp)
@@ -210,12 +214,12 @@ function deletenodeproperties(node::Node)
     request(node.properties, Requests.delete, 204)
 end
 
-function deletenodeproperty(node::Node, name::String)
+function deletenodeproperty(node::Node, name::AbstractString)
     url = replace(node.property, "{key}", name)
     request(url, Requests.delete, 204)
 end
 
-function addnodelabel(node::Node, label::String)
+function addnodelabel(node::Node, label::AbstractString)
     request(node.labels, Requests.post, 204; json=label)
 end
 
@@ -227,7 +231,7 @@ function updatenodelabels(node::Node, labels::JSONArray)
     request(node.labels, Requests.put, 204; json=labels)
 end
 
-function deletenodelabel(node::Node, label::String)
+function deletenodelabel(node::Node, label::AbstractString)
     url = "$(node.labels)/$label"
     request(url, Requests.delete, 204)
 end
@@ -237,7 +241,7 @@ function getnodelabels(node::Node)
     Requests.json(resp)
 end
 
-function getnodesforlabel(graph::Graph, label::String, props::JSONObject=nothing)
+function getnodesforlabel(graph::Graph, label::AbstractString, props::JSONObject=nothing)
     # TODO Shouldn't this url be available in the api somewhere?
     url = "$(graph.connection.url)label/$label/nodes"
     resp = request(url, Requests.get, 200; query=props)
@@ -254,12 +258,12 @@ end
 # -------------
 
 immutable Relationship
-    relstart::String
-    property::String
-    self::String
-    properties::String
-    reltype::String
-    relend::String
+    relstart::UTF8String
+    property::UTF8String
+    self::UTF8String
+    properties::UTF8String
+    reltype::UTF8String
+    relend::UTF8String
     data::JSONObject
     id::Int
     graph::Graph
@@ -267,7 +271,7 @@ end
 
 Relationship(data::JSONObject, graph::Graph) = Relationship(data["start"], data["property"],
         data["self"], data["properties"], data["type"], data["end"], data["data"],
-        split(data["self"], "/")[end] |> int, graph)
+        split(data["self"], "/")[end] |> parse, graph)
 
 function getnoderels(node::Node; reldir::Direction=bothrels)
 
@@ -279,8 +283,8 @@ function getrel(graph::Graph, id::Int)
     Relationship(Requests.json(resp), graph)
 end
 
-function createrel(from::Node, to::Node, reltype::String; props::JSONObject=nothing)
-    body = (String=>Any)["to" => to.self, "type" => uppercase(reltype)]
+function createrel(from::Node, to::Node, reltype::AbstractString; props::JSONObject=nothing)
+    body = Dict{UTF8String, Any}("to" => to.self, "type" => uppercase(reltype))
     if props !== nothing
         body["data"] = props
     end
@@ -292,7 +296,7 @@ function deleterel(rel::Relationship)
     request(rel.self, Requests.delete, 204)
 end
 
-function getrelproperty(rel::Relationship, name::String)
+function getrelproperty(rel::Relationship, name::AbstractString)
     url = replace(rel.property, "{key}", name)
     resp = request(url, Requests.get, 200)
     Requests.json(resp)
