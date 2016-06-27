@@ -2,12 +2,13 @@ module Neo4j
 
 using Requests
 using JSON
+import Base.convert
 
 export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperty,
        getnodeproperties, updatenodeproperties, deletenodeproperties, deletenodeproperty,
        addnodelabel, addnodelabels, updatenodelabels, deletenodelabel, getnodelabels,
        getnodesforlabel, getlabels, getrel, createrel, deleterel, getrelproperty,
-       getrelproperties, updaterelproperties
+       getrelproperties, updaterelproperties, convert
 
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
@@ -82,7 +83,8 @@ function getgraph(conn::Connection)
         error("Connection to server unsuccessful: $(resp.status)")
     end
     #Note the Requests lib returns UTF8String, so lets just use that as a standard for REST calls [GearsAD]
-    Graph(Requests.json(resp), conn)
+    # @show typeof(Requests.json(resp))
+    Graph(Dict{UTF8String,Any}(Requests.json(resp)), conn)
 end
 
 function getgraph()
@@ -123,6 +125,9 @@ immutable Node
          split(data["self"], "/")[end] |> parse, graph)
 end
 
+function convert(::Type{Union{Dict{UTF8String,Any},Void}}, d::Dict{AbstractString,Any})
+  return Dict{UTF8String, Any}(d)
+end
 
 # --------
 # Requests
@@ -158,13 +163,15 @@ end
 
 function createnode(graph::Graph, props::JSONData=nothing)
     resp = request(graph.node, Requests.post, 201; json=props)
-    Node(Requests.json(resp), graph)
+    jsrsp = Dict{UTF8String,Any}(Requests.json(resp))
+    # @show typeof(jsrsp)
+    Node(jsrsp, graph)
 end
 
 function getnode(graph::Graph, id::Int)
     url = "$(graph.node)/$id"
     resp = request(url, Requests.get, 200)
-    Node(Requests.json(resp), graph)
+    Node(Dict{UTF8String,Any}(Requests.json(resp)), graph)
 end
 
 function getnode(node::Node)
@@ -245,7 +252,7 @@ function getnodesforlabel(graph::Graph, label::AbstractString, props::JSONObject
     # TODO Shouldn't this url be available in the api somewhere?
     url = "$(graph.connection.url)label/$label/nodes"
     resp = request(url, Requests.get, 200; query=props)
-    [Node(nodedata, graph) for nodedata = Requests.json(resp)]
+    [Node(Dict{UTF8String,Any}(nodedata), graph) for nodedata = Requests.json(resp)]
 end
 
 function getlabels(graph::Graph)
@@ -280,7 +287,7 @@ end
 function getrel(graph::Graph, id::Int)
     url = "$(graph.relationship)/$id"
     resp = request(url, Requests.get, 200)
-    Relationship(Requests.json(resp), graph)
+    Relationship(Dict{UTF8String,Any}(Requests.json(resp)), graph)
 end
 
 function createrel(from::Node, to::Node, reltype::AbstractString; props::JSONObject=nothing)
@@ -289,7 +296,7 @@ function createrel(from::Node, to::Node, reltype::AbstractString; props::JSONObj
         body["data"] = props
     end
     resp = request(from.create_relationship, Requests.post, 201, json=body)
-    Relationship(Requests.json(resp), from.graph)
+    Relationship(Dict{UTF8String,Any}(Requests.json(resp)), from.graph)
 end
 
 function deleterel(rel::Relationship)
