@@ -4,11 +4,18 @@ using Base.Test
 @test isdefined(:Neo4j) == true
 @test typeof(Neo4j) == Module
 
-print("[TEST] Creating a Neo4j connection to localhost:7474...");
-graph = getgraph()
+# try
+#   print("[TEST] Creating a Neo4j connection to localhost:7474 with no credentials...");
+#   graph = getgraph()
+# catch
+  print("[TEST] Creating a Neo4j connection to localhost:7474 with neo4j:neo5j credentials...");
+  #Trying with security.
+  conn = Neo4j.Connection("localhost"; user="neo4j", password="neo5j");
+  graph = getgraph(conn);
+# end
 println("Success!");
 
-print("[TEST] Checking version of connected graph = Neo4j ", ascii(graph.version))
+print("[TEST] Checking version of connected graph = Neo4j ", ascii(graph.version), "...")
 # Have to account for newer Neo4j! Using version text - ref: http://docs.julialang.org/en/release-0.4/manual/strings/
 @test convert(VersionNumber, graph.version) >  v"2.0.0"
 # Check that

@@ -13,7 +13,6 @@ export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getn
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
 const DEFAULT_URI = "/db/data/"
-const DEFAULT_HEADERS = Dict{Any, Any}("Accept" => "application/json; charset=UTF-8", "Host" => "localhost:7474")
 
 typealias JSONObject Union{Dict{UTF8String,Any},Void}
 typealias JSONArray Union{Vector,Void}
@@ -42,13 +41,23 @@ immutable Connection
     port::Int
     path::UTF8String
     url::UTF8String
+    user::UTF8String
+    password::UTF8String
 
-    Connection(host::AbstractString, port::Int, path::AbstractString) = new(utf8(host), port, utf8(path), utf8("http://$host:$port$path"))
+    Connection(host::AbstractString; port=DEFAULT_PORT, path=DEFAULT_URI, user="", password="") = new(utf8(host), port, utf8(path), utf8("http://$host:$port$path"), utf8(user), utf8(password))
+    Connection() = new(DEFAULT_HOST)
 end
 
-Connection(host::AbstractString, port::Int) = Connection(host, port, DEFAULT_URI)
-Connection(host::AbstractString) = Connection(host, DEFAULT_PORT)
-Connection() = Connection(DEFAULT_HOST)
+function connheaders(c::Connection)
+  headers = Dict(
+    "Accept" => "application/json; charset=UTF-8",
+    "Host" => "$(c.host):$(c.port)")
+  if c.user != "" && c.password != ""
+    payload = "$(c.user):$(c.password)" |> base64encode
+    headers["Authorization"] = "Basic $(payload)"
+  end
+  headers
+end
 
 # -----
 # Graph
@@ -78,7 +87,7 @@ Graph(data::Dict{UTF8String,Any}, conn::Connection) = Graph(data["node"], data["
     "$(conn.url)relationship")
 
 function getgraph(conn::Connection)
-    resp = get(conn.url; headers=DEFAULT_HEADERS)
+    resp = get(conn.url; headers=connheaders(conn))
     if resp.status !== 200
         error("Connection to server unsuccessful: $(resp.status)")
     end
@@ -133,8 +142,8 @@ end
 # Requests
 # --------
 
-function request(url::AbstractString, method::Function, exp_code::Int;
-                 headers::Dict{Any,Any}=DEFAULT_HEADERS, json::JSONData=nothing,
+function request(url::AbstractString, method::Function, exp_code::Int,
+                 headers::Dict{ASCIIString,ASCIIString}; json::JSONData=nothing,
                  query::QueryData=nothing)
     if json == nothing && query == nothing
         resp = method(url; headers=headers)
@@ -162,7 +171,7 @@ end
 # -----------------
 
 function createnode(graph::Graph, props::JSONData=nothing)
-    resp = request(graph.node, Requests.post, 201; json=props)
+    resp = request(graph.node, Requests.post, 201, connheaders(graph.connection); json=props)
     jsrsp = Dict{UTF8String,Any}(Requests.json(resp))
     # @show typeof(jsrsp)
     Node(jsrsp, graph)
@@ -170,7 +179,7 @@ end
 
 function getnode(graph::Graph, id::Int)
     url = "$(graph.node)/$id"
-    resp = request(url, Requests.get, 200)
+    resp = request(url, Requests.get, 200, connheaders(graph.connection))
     Node(Dict{UTF8String,Any}(Requests.json(resp)), graph)
 end
 
@@ -179,7 +188,7 @@ function getnode(node::Node)
 end
 
 function deletenode(node::Node)
-    request(node.self, Requests.delete, 204)
+    request(node.self, Requests.delete, 204, connheaders(node.graph.connection))
 end
 
 function deletenode(graph::Graph, id::Int)
@@ -189,7 +198,7 @@ end
 
 function setnodeproperty(node::Node, name::AbstractString, value::Any)
     url = replace(node.property, "{key}", name)
-    request(url, Requests.put, 204; json=value)
+    request(url, Requests.put, 204, connheaders(node.graph.connection); json=value)
 end
 
 function setnodeproperty(graph::Graph, id::Int, name::AbstractString, value::Any)
@@ -198,17 +207,17 @@ function setnodeproperty(graph::Graph, id::Int, name::AbstractString, value::Any
 end
 
 function updatenodeproperties(node::Node, props::JSONObject)
-    resp = request(node.properties, Requests.put, 204; json=props)
+    resp = request(node.properties, Requests.put, 204, connheaders(node.graph.connection); json=props)
 end
 
 function getnodeproperty(node::Node, name::AbstractString)
     url = replace(node.property, "{key}", name)
-    resp = request(url, Requests.get, 200)
+    resp = request(url, Requests.get, 200, connheaders(node.graph.connection))
     Requests.json(resp)
 end
 
 function getnodeproperties(node::Node)
-    resp = request(node.properties, Requests.get, 200)
+    resp = request(node.properties, Requests.get, 200, connheaders(node.graph.connection))
     Requests.json(resp)
 end
 
@@ -218,45 +227,45 @@ function getnodeproperties(graph::Graph, id::Int)
 end
 
 function deletenodeproperties(node::Node)
-    request(node.properties, Requests.delete, 204)
+    request(node.properties, Requests.delete, 204, connheaders(node.graph.connection))
 end
 
 function deletenodeproperty(node::Node, name::AbstractString)
     url = replace(node.property, "{key}", name)
-    request(url, Requests.delete, 204)
+    request(url, Requests.delete, 204, connheaders(node.graph.connection))
 end
 
 function addnodelabel(node::Node, label::AbstractString)
-    request(node.labels, Requests.post, 204; json=label)
+    request(node.labels, Requests.post, 204, connheaders(node.graph.connection); json=label)
 end
 
 function addnodelabels(node::Node, labels::JSONArray)
-    request(node.labels, Requests.post, 204; json=labels)
+    request(node.labels, Requests.post, 204, connheaders(node.graph.connection); json=labels)
 end
 
 function updatenodelabels(node::Node, labels::JSONArray)
-    request(node.labels, Requests.put, 204; json=labels)
+    request(node.labels, Requests.put, 204, connheaders(node.graph.connection); json=labels)
 end
 
 function deletenodelabel(node::Node, label::AbstractString)
     url = "$(node.labels)/$label"
-    request(url, Requests.delete, 204)
+    request(url, Requests.delete, 204, connheaders(node.graph.connection))
 end
 
 function getnodelabels(node::Node)
-    resp = request(node.labels, Requests.get, 200)
+    resp = request(node.labels, Requests.get, 200, connheaders(node.graph.connection))
     Requests.json(resp)
 end
 
 function getnodesforlabel(graph::Graph, label::AbstractString, props::JSONObject=nothing)
     # TODO Shouldn't this url be available in the api somewhere?
     url = "$(graph.connection.url)label/$label/nodes"
-    resp = request(url, Requests.get, 200; query=props)
+    resp = request(url, Requests.get, 200, connheaders(graph.connection); query=props)
     [Node(Dict{UTF8String,Any}(nodedata), graph) for nodedata = Requests.json(resp)]
 end
 
 function getlabels(graph::Graph)
-    resp = request(graph.node_labels, Requests.get, 200)
+    resp = request(graph.node_labels, Requests.get, 200, connheaders(graph.connection))
     Requests.json(resp)
 end
 
@@ -286,7 +295,7 @@ end
 
 function getrel(graph::Graph, id::Int)
     url = "$(graph.relationship)/$id"
-    resp = request(url, Requests.get, 200)
+    resp = request(url, Requests.get, 200, connheaders(graph.connection))
     Relationship(Dict{UTF8String,Any}(Requests.json(resp)), graph)
 end
 
@@ -295,27 +304,27 @@ function createrel(from::Node, to::Node, reltype::AbstractString; props::JSONObj
     if props !== nothing
         body["data"] = props
     end
-    resp = request(from.create_relationship, Requests.post, 201, json=body)
+    resp = request(from.create_relationship, Requests.post, 201, connheaders(from.graph.connection), json=body)
     Relationship(Dict{UTF8String,Any}(Requests.json(resp)), from.graph)
 end
 
 function deleterel(rel::Relationship)
-    request(rel.self, Requests.delete, 204)
+    request(rel.self, Requests.delete, 204, connheaders(rel.graph.connection))
 end
 
 function getrelproperty(rel::Relationship, name::AbstractString)
     url = replace(rel.property, "{key}", name)
-    resp = request(url, Requests.get, 200)
+    resp = request(url, Requests.get, 200, connheaders(rel.graph.connection))
     Requests.json(resp)
 end
 
 function getrelproperties(rel::Relationship)
-    resp = request(rel.properties, Requests.get, 200)
+    resp = request(rel.properties, Requests.get, 200, connheaders(rel.graph.connection))
     Requests.json(resp)
 end
 
 function updaterelproperties(rel::Relationship, props::JSONObject)
-    request(rel.properties, Requests.put, 204; json=props)
+    request(rel.properties, Requests.put, 204, connheaders(rel.graph.connection); json=props)
 end
 
 end # module
