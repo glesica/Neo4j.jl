@@ -9,6 +9,7 @@ export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getn
        addnodelabel, addnodelabels, updatenodelabels, deletenodelabel, getnodelabels,
        getnodesforlabel, getlabels, getrel, createrel, deleterel, getrelproperty,
        getrelproperties, updaterelproperties, convert
+export Connection
 
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
@@ -120,6 +121,7 @@ immutable Node
     incoming_typed_relationships::UTF8String
     create_relationship::UTF8String
     data::JSONObject
+    metadata::Dict{UTF8String,Any}
     id::Int64
     graph::Graph
 
@@ -130,7 +132,7 @@ immutable Node
          data["all_relationships"], data["property"],
          data["self"], data["outgoing_typed_relationships"], data["properties"],
          data["incoming_relationships"], data["incoming_typed_relationships"],
-         data["create_relationship"], data["data"],
+         data["create_relationship"], data["data"], data["metadata"],
          split(data["self"], "/")[end] |> parse, graph)
 end
 
@@ -278,6 +280,7 @@ immutable Relationship
     property::UTF8String
     self::UTF8String
     properties::UTF8String
+    metadata::Dict{UTF8String,Any}
     reltype::UTF8String
     relend::UTF8String
     data::JSONObject
@@ -286,11 +289,24 @@ immutable Relationship
 end
 
 Relationship(data::JSONObject, graph::Graph) = Relationship(data["start"], data["property"],
-        data["self"], data["properties"], data["type"], data["end"], data["data"],
+        data["self"], data["properties"], data["metadata"], data["type"], data["end"], data["data"],
         split(data["self"], "/")[end] |> parse, graph)
 
 function getnoderels(node::Node; reldir::Direction=bothrels)
-
+  rels = Vector{Relationship}()
+  if(reldir == bothrels || reldir == inrels)
+    resp = request(node.outgoing_relationships, Requests.get, 200, connheaders(node.graph.connection))
+    for rel=Requests.json(resp)
+      push!(rels, Relationship(Dict{UTF8String,Any}(rel), node.graph))
+    end
+  end
+  if(reldir == bothrels || reldir == outrels)
+    resp = request(node.incoming_relationships, Requests.get, 200, connheaders(node.graph.connection))
+    for rel=Requests.json(resp)
+      push!(rels, Relationship(Dict{UTF8String,Any}(rel), node.graph))
+    end
+  end
+  rels
 end
 
 function getrel(graph::Graph, id::Int)

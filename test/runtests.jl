@@ -4,15 +4,16 @@ using Base.Test
 @test isdefined(:Neo4j) == true
 @test typeof(Neo4j) == Module
 
-# try
-#   print("[TEST] Creating a Neo4j connection to localhost:7474 with no credentials...");
-#   graph = getgraph()
-# catch
+graph = nothing
+try
+  print("[TEST] Creating a Neo4j connection to localhost:7474 with no credentials...");
+  graph = getgraph()
+catch
   print("[TEST] Creating a Neo4j connection to localhost:7474 with neo4j:neo5j credentials...");
   #Trying with security.
   conn = Neo4j.Connection("localhost"; user="neo4j", password="neo5j");
   graph = getgraph(conn);
-# end
+end
 println("Success!");
 
 print("[TEST] Checking version of connected graph = Neo4j ", ascii(graph.version), "...")
