@@ -128,6 +128,27 @@ rel1alt = getrel(graph, rel1.id);
 @test rel1.id == rel1alt.id
 println("Success!");
 
+print("[TEST] Getting relationships from nodes...")
+endnode = createnode(graph, Dict{UTF8String,Any}("a" => "A", "b" => 1))
+rel2 = createrel(propnode, endnode, "test"; props=Dict{UTF8String,Any}("a" => "A", "b" => 1));
+@test length(Neo4j.getrels(endnode)) == 1
+@test length(Neo4j.getrels(propnode)) == 2
+@test length(Neo4j.getrels(barenode)) == 1
+@test length(Neo4j.getrels(endnode, reldir=Neo4j.inrels)) == 1
+@test length(Neo4j.getrels(endnode, reldir=Neo4j.outrels)) == 0
+@test length(Neo4j.getrels(propnode, reldir=Neo4j.inrels)) == 1
+@test length(Neo4j.getrels(propnode, reldir=Neo4j.outrels)) == 1
+println("Success!")
+
+print("[TEST] Getting neighbors...")
+neighbors = Neo4j.getneighbors(propnode)
+@test length(neighbors) == 2
+neighbors = Neo4j.getneighbors(propnode, reldir=Neo4j.inrels)
+@test neighbors[1].metadata["id"] == barenode.metadata["id"]
+neighbors = Neo4j.getneighbors(propnode, reldir=Neo4j.outrels)
+@test neighbors[1].metadata["id"] == endnode.metadata["id"]
+println("Success!")
+
 print("[TEST] Getting relationship properties...")
 rel1prop = getrelproperties(rel1);
 @test rel1prop["a"] == "A"
@@ -139,7 +160,9 @@ println("Success!");
 
 print("[TEST] Deleting a relationship...")
 deleterel(rel1)
+deleterel(rel2)
 @test_throws ErrorException getrel(graph, rel1.id)
+@test_throws ErrorException getrel(graph, rel2.id)
 println("Success!");
 
 print("[TEST] Deleting a node...")

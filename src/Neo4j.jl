@@ -7,7 +7,7 @@ import Base.convert
 export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperty,
        getnodeproperties, updatenodeproperties, deletenodeproperties, deletenodeproperty,
        addnodelabel, addnodelabels, updatenodelabels, deletenodelabel, getnodelabels,
-       getnodesforlabel, getlabels, getrel, createrel, deleterel, getrelproperty,
+       getnodesforlabel, getlabels, getrel, getrels, getneighbors, createrel, deleterel, getrelproperty,
        getrelproperties, updaterelproperties, convert
 export Connection
 
@@ -292,21 +292,43 @@ Relationship(data::JSONObject, graph::Graph) = Relationship(data["start"], data[
         data["self"], data["properties"], data["metadata"], data["type"], data["end"], data["data"],
         split(data["self"], "/")[end] |> parse, graph)
 
-function getnoderels(node::Node; reldir::Direction=bothrels)
+function getrels(node::Node; reldir::Direction=bothrels)
   rels = Vector{Relationship}()
   if(reldir == bothrels || reldir == inrels)
-    resp = request(node.outgoing_relationships, Requests.get, 200, connheaders(node.graph.connection))
-    for rel=Requests.json(resp)
-      push!(rels, Relationship(Dict{UTF8String,Any}(rel), node.graph))
-    end
-  end
-  if(reldir == bothrels || reldir == outrels)
     resp = request(node.incoming_relationships, Requests.get, 200, connheaders(node.graph.connection))
     for rel=Requests.json(resp)
       push!(rels, Relationship(Dict{UTF8String,Any}(rel), node.graph))
     end
   end
+  if(reldir == bothrels || reldir == outrels)
+    resp = request(node.outgoing_relationships, Requests.get, 200, connheaders(node.graph.connection))
+    for rel=Requests.json(resp)
+      push!(rels, Relationship(Dict{UTF8String,Any}(rel), node.graph))
+    end
+  end
   rels
+end
+
+function getneighbors(node::Node; reldir::Direction=bothrels)
+  neighbors = Vector{Node}()
+
+  # Do incoming
+  if(reldir == bothrels || reldir == inrels)
+    rels = getrels(node, reldir=inrels)
+    for rel=rels
+      resp = request(rel.relstart, Requests.get, 200, connheaders(node.graph.connection))
+      push!(neighbors, Node(Dict{UTF8String,Any}(Requests.json(resp)), node.graph))
+    end
+  end
+  # Do outgoing
+  if(reldir == bothrels || reldir == outrels)
+    rels = getrels(node, reldir=outrels)
+    for rel=rels
+      resp = request(rel.relend, Requests.get, 200, connheaders(node.graph.connection))
+      push!(neighbors, Node(Dict{UTF8String,Any}(Requests.json(resp)), node.graph))
+    end
+  end
+  neighbors
 end
 
 function getrel(graph::Graph, id::Int)
