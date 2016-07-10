@@ -21,18 +21,6 @@ typealias JSONData Union{JSONObject,JSONArray,AbstractString,Number,Void}
 
 typealias QueryData Union{Dict{Any,Any},Void}
 
-# -----------------------
-# Relationship Directions
-# -----------------------
-
-immutable Direction
-    dir::UTF8String
-end
-
-const inrels = Direction("in")
-const outrels = Direction("out")
-const bothrels = Direction("both")
-
 # ----------
 # Connection
 # ----------
@@ -292,15 +280,15 @@ Relationship(data::JSONObject, graph::Graph) = Relationship(data["start"], data[
         data["self"], data["properties"], data["metadata"], data["type"], data["end"], data["data"],
         split(data["self"], "/")[end] |> parse, graph)
 
-function getrels(node::Node; reldir::Direction=bothrels)
+function getrels(node::Node; incoming::Bool=true, outgoing::Bool=true)
   rels = Vector{Relationship}()
-  if(reldir == bothrels || reldir == inrels)
+  if(incoming)
     resp = request(node.incoming_relationships, Requests.get, 200, connheaders(node.graph.connection))
     for rel=Requests.json(resp)
       push!(rels, Relationship(Dict{UTF8String,Any}(rel), node.graph))
     end
   end
-  if(reldir == bothrels || reldir == outrels)
+  if(outgoing)
     resp = request(node.outgoing_relationships, Requests.get, 200, connheaders(node.graph.connection))
     for rel=Requests.json(resp)
       push!(rels, Relationship(Dict{UTF8String,Any}(rel), node.graph))
@@ -309,20 +297,19 @@ function getrels(node::Node; reldir::Direction=bothrels)
   rels
 end
 
-function getneighbors(node::Node; reldir::Direction=bothrels)
+function getneighbors(node::Node; incoming::Bool=true, outgoing::Bool=true)
   neighbors = Vector{Node}()
 
   # Do incoming
-  if(reldir == bothrels || reldir == inrels)
-    rels = getrels(node, reldir=inrels)
+  if(incoming)
+    rels = getrels(node, incoming=true, outgoing=false)
     for rel=rels
       resp = request(rel.relstart, Requests.get, 200, connheaders(node.graph.connection))
       push!(neighbors, Node(Dict{UTF8String,Any}(Requests.json(resp)), node.graph))
     end
   end
-  # Do outgoing
-  if(reldir == bothrels || reldir == outrels)
-    rels = getrels(node, reldir=outrels)
+  if(outgoing)
+    rels = getrels(node, incoming=false, outgoing=true)
     for rel=rels
       resp = request(rel.relend, Requests.get, 200, connheaders(node.graph.connection))
       push!(neighbors, Node(Dict{UTF8String,Any}(Requests.json(resp)), node.graph))

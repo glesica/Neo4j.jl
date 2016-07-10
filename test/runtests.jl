@@ -134,18 +134,20 @@ rel2 = createrel(propnode, endnode, "test"; props=Dict{UTF8String,Any}("a" => "A
 @test length(Neo4j.getrels(endnode)) == 1
 @test length(Neo4j.getrels(propnode)) == 2
 @test length(Neo4j.getrels(barenode)) == 1
-@test length(Neo4j.getrels(endnode, reldir=Neo4j.inrels)) == 1
-@test length(Neo4j.getrels(endnode, reldir=Neo4j.outrels)) == 0
-@test length(Neo4j.getrels(propnode, reldir=Neo4j.inrels)) == 1
-@test length(Neo4j.getrels(propnode, reldir=Neo4j.outrels)) == 1
+@test length(Neo4j.getrels(endnode, incoming=true, outgoing=false)) == 1
+@test length(Neo4j.getrels(endnode, incoming=false, outgoing=true)) == 0
+@test length(Neo4j.getrels(propnode, incoming=true, outgoing=false)) == 1
+@test length(Neo4j.getrels(propnode, incoming=false, outgoing=true)) == 1
 println("Success!")
 
 print("[TEST] Getting neighbors...")
 neighbors = Neo4j.getneighbors(propnode)
 @test length(neighbors) == 2
-neighbors = Neo4j.getneighbors(propnode, reldir=Neo4j.inrels)
+neighbors = Neo4j.getneighbors(propnode, incoming=true, outgoing=false)
+@test length(neighbors) == 1
 @test neighbors[1].metadata["id"] == barenode.metadata["id"]
-neighbors = Neo4j.getneighbors(propnode, reldir=Neo4j.outrels)
+neighbors = Neo4j.getneighbors(propnode, incoming=false, outgoing=true)
+@test length(neighbors) == 1
 @test neighbors[1].metadata["id"] == endnode.metadata["id"]
 println("Success!")
 
