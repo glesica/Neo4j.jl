@@ -9,7 +9,7 @@ export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getn
        addnodelabel, addnodelabels, updatenodelabels, deletenodelabel, getnodelabels,
        getnodesforlabel, getlabels, getrel, getrels, getneighbors, createrel, deleterel, getrelproperty,
        getrelproperties, updaterelproperties, convert
-export Connection
+export Connection, Result
 
 const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
@@ -26,15 +26,26 @@ typealias QueryData Union{Dict{Any,Any},Void}
 # ----------
 
 immutable Connection
-    host::UTF8String
-    port::Int
-    path::UTF8String
-    url::UTF8String
-    user::UTF8String
-    password::UTF8String
+  tls::Bool
+  host::UTF8String
+  port::Int
+  path::UTF8String
+  url::UTF8String
+  user::UTF8String
+  password::UTF8String
 
-    Connection(host::AbstractString; port=DEFAULT_PORT, path=DEFAULT_URI, user="", password="") = new(utf8(host), port, utf8(path), utf8("http://$host:$port$path"), utf8(user), utf8(password))
-    Connection() = new(DEFAULT_HOST)
+  Connection(host::AbstractString; port=DEFAULT_PORT, path=DEFAULT_URI, tls=false, user="", password="") = new(tls, utf8(host), port, utf8(path), utf8("http://$host:$port$path"), utf8(user), utf8(password))
+  Connection() = new(DEFAULT_HOST)
+end
+
+function connurl(c::Connection)
+  proto = ifelse(c.tls, "https", "http")
+  "$(proto)://$(c.host):$(c.port)$(c.path)"
+end
+
+function connurl(c::Connection, suffix::AbstractString)
+  url = connurl(c)
+  "$(url)$(suffix)"
 end
 
 function connheaders(c::Connection)
@@ -127,6 +138,30 @@ end
 function convert(::Type{Union{Dict{UTF8String,Any},Void}}, d::Dict{AbstractString,Any})
   return Dict{UTF8String, Any}(d)
 end
+
+# ----------
+# Statements
+# ----------
+
+immutable Statement
+  statement::AbstractString
+  parameters::Dict
+end
+
+# -------
+# Results
+# -------
+
+immutable Result
+  results::Vector
+  errors::Vector
+end
+
+# ------------
+# Transactions
+# ------------
+
+include("transaction.jl")
 
 # --------
 # Requests
