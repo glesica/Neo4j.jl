@@ -14,6 +14,7 @@ catch
   conn = Neo4j.Connection("localhost"; user="neo4j", password="neo5j");
   graph = getgraph(conn);
 end
+conn = graph.connection;
 println("Success!");
 
 print("[TEST] Checking version of connected graph = Neo4j ", ascii(graph.version), "...")
@@ -24,12 +25,12 @@ print("[TEST] Checking version of connected graph = Neo4j ", ascii(graph.version
 println("Success!");
 
 print("[TEST] Creating a node...");
-barenode = createnode(graph)
+barenode = Neo4j.createnode(graph)
 @test barenode.self == "http://localhost:7474/db/data/node/$(barenode.id)"
 println("Success!");
 
 print("[TEST] Creating a node with properties...");
-propnode = createnode(graph, Dict{UTF8String,Any}("a" => "A", "b" => 1))
+propnode = Neo4j.createnode(graph, Dict{UTF8String,Any}("a" => "A", "b" => 1))
 @test propnode.data["a"] == "A"
 @test propnode.data["b"] == 1
 println("Success!");
@@ -129,7 +130,7 @@ rel1alt = getrel(graph, rel1.id);
 println("Success!");
 
 print("[TEST] Getting relationships from nodes...")
-endnode = createnode(graph, Dict{UTF8String,Any}("a" => "A", "b" => 1))
+endnode = Neo4j.createnode(graph, Dict{UTF8String,Any}("a" => "A", "b" => 1))
 rel2 = createrel(propnode, endnode, "test"; props=Dict{UTF8String,Any}("a" => "A", "b" => 1));
 @test length(Neo4j.getrels(endnode)) == 1
 @test length(Neo4j.getrels(propnode)) == 2
@@ -172,4 +173,80 @@ deletenode(graph, barenode.id)
 deletenode(graph, propnode.id)
 @test_throws ErrorException getnode(graph, barenode.id)
 @test_throws ErrorException getnode(graph, propnode.id)
+println("Success!");
+
+# --- New transaction code from Glesica source ---
+
+print("[TEST] Creating a transaction and nodes with the new Glesica transaction framework...")
+loadtx = transaction(conn)
+
+function createnode(txn, name, age; submit=false)
+  q = "CREATE (n:Neo4jjl) SET n.name = {name}, n.age = {age}"
+  txn(q, "name" => name, "age" => age; submit=submit)
+end
+
+@test length(loadtx.statements) == 0
+
+createnode(loadtx, "John Doe", 20)
+
+@test length(loadtx.statements) == 1
+
+createnode(loadtx, "Jane Doe", 20)
+
+@test length(loadtx.statements) == 2
+println("Success!")
+
+query = "MATCH (n:Neo4jjl) WHERE n.age = {age} RETURN n.name";
+print("[TEST] Doing a match query '", query, "'...")
+people = loadtx(query, "age" => 20; submit=true)
+
+@test length(loadtx.statements) == 0
+@test length(people.results) == 3
+@test length(people.errors) == 0
+
+matchresult = people.results[3]
+@test matchresult["columns"][1] == "n.name"
+@test "John Doe" in [row["row"][1] for row = matchresult["data"]]
+@test "Jane Doe" in [row["row"][1] for row = matchresult["data"]]
+
+loadresult = commit(loadtx)
+
+@test length(loadresult.results) == 0
+@test length(loadresult.errors) == 0
+println("Success!")
+
+query = "MATCH (n:Neo4jjl) WHERE n.age = {age} DELETE n"
+print("[TEST] Deleting nodes '", query, "'...")
+
+deletetx = transaction(conn)
+deletetx(query, "age" => 20)
+
+deleteresult = commit(deletetx)
+
+@test length(deleteresult.results) == 1
+@test length(deleteresult.results[1]["columns"]) == 0
+@test length(deleteresult.results[1]["data"]) == 0
+@test length(deleteresult.errors) == 0
+println("Success!")
+
+print("[TEST] Rolling back transactions...")
+
+rolltx = transaction(conn)
+
+person = createnode(rolltx, "John Doe", 20; submit=true)
+
+@test length(rolltx.statements) == 0
+@test length(person.results) == 1
+@test length(person.errors) == 0
+
+rollback(rolltx)
+
+rolltx = transaction(conn)
+rollresult = rolltx("MATCH (n:Neo4jjl) WHERE n.name = 'John Doe' RETURN n"; submit=true)
+
+@test length(rollresult.results) == 1
+@test length(rollresult.results[1]["columns"]) == 1
+@test length(rollresult.results[1]["data"]) == 0
+@test length(rollresult.errors) == 0
+
 println("Success!");
