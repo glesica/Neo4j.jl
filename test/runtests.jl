@@ -30,7 +30,7 @@ barenode = Neo4j.createnode(graph)
 println("Success!");
 
 print("[TEST] Creating a node with properties...");
-propnode = Neo4j.createnode(graph, Dict{UTF8String,Any}("a" => "A", "b" => 1))
+propnode = Neo4j.createnode(graph, Dict{AbstractString,Any}("a" => "A", "b" => 1))  #UTF8String
 @test propnode.data["a"] == "A"
 @test propnode.data["b"] == 1
 println("Success!");
@@ -56,7 +56,7 @@ props = getnodeproperties(propnode)
 println("Success!");
 
 print("[TEST] Updating node properties...");
-updatenodeproperties(barenode, Dict{UTF8String,Any}("a" => 1, "b" => "A"))
+updatenodeproperties(barenode, Dict{AbstractString,Any}("a" => 1, "b" => "A"))  #UTF8String
 barenode = getnode(barenode)
 @test barenode.data["a"] == 1
 @test barenode.data["b"] == "A"
@@ -121,7 +121,7 @@ labels = getlabels(graph)
 println("Success!");
 
 print("[TEST] Creating a relationship...")
-rel1 = createrel(barenode, propnode, "test"; props=Dict{UTF8String,Any}("a" => "A", "b" => 1));
+rel1 = createrel(barenode, propnode, "test"; props=Dict{AbstractString,Any}("a" => "A", "b" => 1)); #UTF8String
 rel1alt = getrel(graph, rel1.id);
 @test rel1.reltype == "TEST"
 @test rel1.data["a"] == "A"
@@ -130,8 +130,8 @@ rel1alt = getrel(graph, rel1.id);
 println("Success!");
 
 print("[TEST] Getting relationships from nodes...")
-endnode = Neo4j.createnode(graph, Dict{UTF8String,Any}("a" => "A", "b" => 1))
-rel2 = createrel(propnode, endnode, "test"; props=Dict{UTF8String,Any}("a" => "A", "b" => 1));
+endnode = Neo4j.createnode(graph, Dict{AbstractString,Any}("a" => "A", "b" => 1))  # UTF8String
+rel2 = createrel(propnode, endnode, "test"; props=Dict{AbstractString,Any}("a" => "A", "b" => 1));  # UTF8String
 @test length(Neo4j.getrels(endnode)) == 1
 @test length(Neo4j.getrels(propnode)) == 2
 @test length(Neo4j.getrels(barenode)) == 1
