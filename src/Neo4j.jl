@@ -34,7 +34,7 @@ immutable Connection
   user::AbstractString #UTF8String
   password::AbstractString #UTF8String
 
-  Connection(host::AbstractString; port=DEFAULT_PORT, path=DEFAULT_URI, tls=false, user="", password="") = new(tls, utf8(host), port, utf8(path), utf8("http://$host:$port$path"), utf8(user), utf8(password))
+  Connection{T <: AbstractString}(host::T; port=DEFAULT_PORT, path=DEFAULT_URI, tls=false, user="", password="") = new(tls, string(host), port, string(path), string("http://$host:$port$path"), string(user), string(password))
   Connection() = new(DEFAULT_HOST)
 end
 
@@ -43,7 +43,7 @@ function connurl(c::Connection)
   "$(proto)://$(c.host):$(c.port)$(c.path)"
 end
 
-function connurl(c::Connection, suffix::AbstractString)
+function connurl{T <: AbstractString}(c::Connection, suffix::T)
   url = connurl(c)
   "$(url)$(suffix)"
 end
@@ -82,7 +82,7 @@ immutable Graph
 end
 
 # UTF8String
-Graph(data::Dict{AbstractString,Any}, conn::Connection) = Graph(data["node"], data["node_index"], data["relationship_index"],
+Graph{T <: AbstractString}(data::Dict{T,Any}, conn::Connection) = Graph(data["node"], data["node_index"], data["relationship_index"],
     data["extensions_info"], data["relationship_types"], data["batch"], data["cypher"], data["indexes"],
     data["constraints"], data["transaction"], data["node_labels"], data["neo4j_version"], conn,
     "$(conn.url)relationship")
@@ -222,12 +222,12 @@ function deletenode(graph::Graph, id::Int)
     deletenode(node)
 end
 
-function setnodeproperty(node::Node, name::AbstractString, value::Any)
+function setnodeproperty{T <: AbstractString}(node::Node, name::T, value::Any)
     url = replace(node.property, "{key}", name)
     request(url, Requests.put, 204, connheaders(node.graph.connection); json=value)
 end
 
-function setnodeproperty(graph::Graph, id::Int, name::AbstractString, value::Any)
+function setnodeproperty{T <: AbstractString}(graph::Graph, id::Int, name::T, value::Any)
     node = getnode(graph, id)
     setnodeproperty(node, name, value)
 end
@@ -236,7 +236,7 @@ function updatenodeproperties(node::Node, props::JSONObject)
     resp = request(node.properties, Requests.put, 204, connheaders(node.graph.connection); json=props)
 end
 
-function getnodeproperty(node::Node, name::AbstractString)
+function getnodeproperty{T <: AbstractString}(node::Node, name::T)
     url = replace(node.property, "{key}", name)
     resp = request(url, Requests.get, 200, connheaders(node.graph.connection))
     Requests.json(resp)
@@ -256,12 +256,12 @@ function deletenodeproperties(node::Node)
     request(node.properties, Requests.delete, 204, connheaders(node.graph.connection))
 end
 
-function deletenodeproperty(node::Node, name::AbstractString)
+function deletenodeproperty{T <: AbstractString}(node::Node, name::T)
     url = replace(node.property, "{key}", name)
     request(url, Requests.delete, 204, connheaders(node.graph.connection))
 end
 
-function addnodelabel(node::Node, label::AbstractString)
+function addnodelabel{T <: AbstractString}(node::Node, label::T)
     request(node.labels, Requests.post, 204, connheaders(node.graph.connection); json=label)
 end
 
@@ -273,7 +273,7 @@ function updatenodelabels(node::Node, labels::JSONArray)
     request(node.labels, Requests.put, 204, connheaders(node.graph.connection); json=labels)
 end
 
-function deletenodelabel(node::Node, label::AbstractString)
+function deletenodelabel{T <: AbstractString}(node::Node, label::T)
     url = "$(node.labels)/$label"
     request(url, Requests.delete, 204, connheaders(node.graph.connection))
 end
@@ -283,11 +283,11 @@ function getnodelabels(node::Node)
     Requests.json(resp)
 end
 
-function getnodesforlabel(graph::Graph, label::AbstractString, props::JSONObject=nothing)
+function getnodesforlabel{T <: AbstractString}(graph::Graph, label::T, props::JSONObject=nothing)
     # TODO Shouldn't this url be available in the api somewhere?
     url = "$(graph.connection.url)label/$label/nodes"
     resp = request(url, Requests.get, 200, connheaders(graph.connection); query=props)
-    [Node(Dict{UTF8String,Any}(nodedata), graph) for nodedata = Requests.json(resp)]
+    [Node(Dict{AbstractString,Any}(nodedata), graph) for nodedata = Requests.json(resp)]
 end
 
 function getlabels(graph::Graph)
