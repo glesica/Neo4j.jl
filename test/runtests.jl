@@ -60,6 +60,7 @@ updatenodeproperties(barenode, Dict{AbstractString,Any}("a" => 1, "b" => "A"))  
 barenode = getnode(barenode)
 @test barenode.data["a"] == 1
 @test barenode.data["b"] == "A"
+println("Success!");
 
 print("[TEST] Deleting node properties...");
 deletenodeproperties(barenode)
