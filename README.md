@@ -1,9 +1,5 @@
 # Neo4j.jl
 
-![GitHub Logo](/logo.png)
-
-A REST client for the [Neo4j](http://neo4j.org) graph database.
-
 A [Julia](http://julialang.org) client for the [Neo4j](http://neo4j.org) graph
 database.
 
