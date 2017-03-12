@@ -9,7 +9,7 @@ try
   print("[TEST] Creating a Neo4j connection to localhost:7474 with no credentials...");
   graph = getgraph()
 catch
-  print("[TEST] Creating a Neo4j connection to localhost:7474 with neo4j:neo5j credentials...");
+  print("[TEST] Anonymous connection failed! Creating a Neo4j connection to localhost:7474 with neo4j:neo5j credentials...");
   #Trying with security.
   conn = Neo4j.Connection("localhost"; user="neo4j", password="neo5j");
   graph = getgraph(conn);
@@ -251,3 +251,4 @@ rollresult = rolltx("MATCH (n:Neo4jjl) WHERE n.name = 'John Doe' RETURN n"; subm
 @test length(rollresult.errors) == 0
 
 println("Success!");
+println("--- All tests passed!");

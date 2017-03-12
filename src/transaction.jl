@@ -3,6 +3,7 @@
 # transaction can be a single request, or it can be held open through many
 # requests as a means of batching jobs together.
 
+using Compat
 import Base.call
 
 export transaction, rollback, commit
@@ -30,7 +31,7 @@ function transaction(conn::Connection)
   Transaction(conn, respdata["commit"], respheaders["Location"], Statement[])
 end
 
-function call(txn::Transaction, cypher::AbstractString, params::Pair...;
+@compat function (txn::Transaction)(cypher::AbstractString, params::Pair...;
     submit::Bool=false)
   append!(txn.statements, [Statement(cypher, Dict(params))])
   if submit
@@ -76,3 +77,4 @@ function rollback(txn::Transaction)
     error("Failed to rollback transaction ($(resp.status)): $(txn)\n$(resp)")
   end
 end
+
