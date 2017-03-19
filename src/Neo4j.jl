@@ -2,13 +2,12 @@ module Neo4j
 
 using Requests
 using JSON
-import Base.convert
 
 export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperty,
        getnodeproperties, updatenodeproperties, deletenodeproperties, deletenodeproperty,
        addnodelabel, addnodelabels, updatenodelabels, deletenodelabel, getnodelabels,
        getnodesforlabel, getlabels, getrel, getrels, getneighbors, createrel, deleterel, getrelproperty,
-       getrelproperties, updaterelproperties, convert
+       getrelproperties, updaterelproperties
 export Connection, Result
 
 const DEFAULT_HOST = "localhost"
@@ -134,10 +133,6 @@ immutable Node
          data["incoming_relationships"], data["incoming_typed_relationships"],
          data["create_relationship"], data["data"], data["metadata"],
          split(data["self"], "/")[end] |> parse, graph)
-end
-
-function convert(::Type{Union{Dict{AbstractString,Any},Void}}, d::Dict{AbstractString,Any}) #UTF8String
-  return Dict{AbstractString, Any}(d) # UTF8String
 end
 
 # ----------
