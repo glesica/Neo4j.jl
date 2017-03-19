@@ -1,9 +1,9 @@
 # Neo4j.jl
 
-[![Build Status](https://travis-ci.org/glesica/Neo4j.jl.png)](https://travis-ci.org/glesica/Neo4j.jl)
-
 A [Julia](http://julialang.org) client for the [Neo4j](http://neo4j.org) graph
 database.
+
+Really easy to use, have a look at ```test/runtests.jl``` for the available methods.
 
 ## Basic Usage
 
@@ -28,4 +28,3 @@ Rollbacks are also supported:
 ```julia
 rollback(tx)
 ```
-

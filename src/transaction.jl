@@ -4,6 +4,7 @@
 # requests as a means of batching jobs together.
 
 using Compat
+import Base.call
 
 export transaction, rollback, commit
 
@@ -18,15 +19,16 @@ end
 function transaction(conn::Connection)
   url = connurl(conn, "transaction")
   headers = connheaders(conn)
-  body = Dict("statements" => [])
+  body = Dict("statements" => [ ])
 
-  resp = post(url; headers=headers, json=body)
+  resp = Requests.post(url; headers=headers, json=body)
   if resp.status != 201
     error("Failed to connect to database ($(resp.status)): $(conn)\n$(resp)")
   end
-  respdata = json(resp)
-  
-  Transaction(conn, respdata["commit"], resp.headers["Location"], Statement[])
+  respdata = Requests.json(resp)
+  respheaders = Requests.headers(resp)
+
+  Transaction(conn, respdata["commit"], respheaders["Location"], Statement[])
 end
 
 @compat function (txn::Transaction)(cypher::AbstractString, params::Pair...;
@@ -37,12 +39,12 @@ end
     headers = connheaders(txn.conn)
     body = Dict("statements" => txn.statements)
 
-    resp = post(url; headers=headers, json=body)
+    resp = Requests.post(url; headers=headers, json=body)
 
     if resp.status != 200
       error("Failed to submit transaction ($(resp.status)): $(txn)\n$(resp)")
     end
-    respdata = json(resp)
+    respdata = Requests.json(resp)
 
     empty!(txn.statements)
     result = Result(respdata["results"], respdata["errors"])
@@ -56,12 +58,12 @@ function commit(txn::Transaction)
   headers = connheaders(txn.conn)
   body = Dict("statements" => txn.statements)
 
-  resp = post(url; headers=headers, json=body)
-  
+  resp = Requests.post(url; headers=headers, json=body)
+
   if resp.status != 200
     error("Failed to commit transaction ($(resp.status)): $(txn)\n$(resp)")
   end
-  respdata = json(resp)
+  respdata = Requests.json(resp)
 
   Result(respdata["results"], respdata["errors"])
 end
@@ -70,7 +72,7 @@ function rollback(txn::Transaction)
   url = txn.location
   headers = connheaders(txn.conn)
 
-  resp = delete(url; headers=headers)
+  resp = Requests.delete(url; headers=headers)
   if resp.status != 200
     error("Failed to rollback transaction ($(resp.status)): $(txn)\n$(resp)")
   end
