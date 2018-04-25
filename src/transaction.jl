@@ -8,7 +8,7 @@ import Base.call
 
 export transaction, rollback, commit
 
-immutable Transaction
+struct Transaction
   conn::Connection
   commit::AbstractString
   location::AbstractString
