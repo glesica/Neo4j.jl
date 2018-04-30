@@ -4,7 +4,6 @@
 # requests as a means of batching jobs together.
 
 using Compat
-import Base.call
 
 export transaction, rollback, commit
 
