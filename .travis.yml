@@ -5,7 +5,7 @@ julia:
 notifications:
   email: false
 before_install:
-  - http://dist.neo4j.org/neo4j-community-3.3.5-unix.tar.gz
+  - wget dist.neo4j.org/neo4j-community-3.3.5-unix.tar.gz
   - tar -xzf neo4j-community-3.3.5-unix.tar.gz
   - sed -i 's/#dbms.security.auth_enabled=false/dbms.security.auth_enabled=false/g' neo4j-community-3.3.5/conf/neo4j-server.properties
   - sed -i 's/dbms.security.auth_enabled=true/dbms.security.auth_enabled=false/g' neo4j-community-3.3.5/conf/neo4j-server.properties
