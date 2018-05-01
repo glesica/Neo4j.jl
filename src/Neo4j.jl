@@ -24,6 +24,15 @@ const QueryData = Union{Dict{Any,Any},Void}
 # Connection
 # ----------
 
+"""
+   Connection()
+
+### Examples
+```julia-repl
+julia> con = Neo4j.Connection("localhost")
+Neo4j.Connection(false, "localhost", 7474, "/db/data/", "http://localhost:7474/db/data/", "", "")
+```
+"""
 struct Connection
   tls::Bool
   host::AbstractString #UTF8String
@@ -64,20 +73,20 @@ end
 
 struct Graph
     # TODO extensions
-    node::AbstractString #UTF8String
-    node_index::AbstractString #UTF8String
-    relationship_index::AbstractString #UTF8String
-    extensions_info::AbstractString #UTF8String
-    relationship_types::AbstractString #UTF8String
-    batch::AbstractString #UTF8String
-    cypher::AbstractString #UTF8String
-    indexes::AbstractString #UTF8String
-    constraints::AbstractString #UTF8String
-    transaction::AbstractString #UTF8String
-    node_labels::AbstractString #UTF8String
-    version::AbstractString #UTF8String
+    node::AbstractString                  #UTF8String
+    node_index::AbstractString            #UTF8String
+    relationship_index::AbstractString    #UTF8String
+    extensions_info::AbstractString       #UTF8String
+    relationship_types::AbstractString    #UTF8String
+    batch::AbstractString                 #UTF8String
+    cypher::AbstractString                #UTF8String
+    indexes::AbstractString               #UTF8String
+    constraints::AbstractString           #UTF8String
+    transaction::AbstractString           #UTF8String
+    node_labels::AbstractString           #UTF8String
+    version::AbstractString               #UTF8String
     connection::Connection
-    relationship::AbstractString #UTF8String # Not in the spec
+    relationship::AbstractString          #UTF8String # Not in the spec
 end
 
 # UTF8String
