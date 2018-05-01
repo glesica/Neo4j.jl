@@ -34,16 +34,17 @@ Neo4j.Connection(false, "localhost", 7474, "/db/data/", "http://localhost:7474/d
 ```
 """
 struct Connection
-  tls::Bool
-  host::AbstractString #UTF8String
-  port::Int
-  path::AbstractString #UTF8String
-  url::AbstractString #UTF8String
-  user::AbstractString #UTF8String
-  password::AbstractString #UTF8String
+   host::AbstractString #UTF8String
+   tls::Bool
+   port::Int
+   path::AbstractString #UTF8String
+   url::AbstractString #UTF8String
+   user::AbstractString #UTF8String
+   password::AbstractString #UTF8String
 
-  Connection{T <: AbstractString}(host::T; port = DEFAULT_PORT, path = DEFAULT_URI, tls = false, user = "", password = "") = new(tls, string(host), port, string(path), string("http://$host:$port$path"), string(user), string(password))
-  Connection() = new(DEFAULT_HOST)
+   Connection{T <: AbstractString}(host::T; port = DEFAULT_PORT, path = DEFAULT_URI, tls = false, user = "", password = "") = 
+      new(string(host), tls, port, string(path), string("http://$host:$port$path"), string(user), string(password))
+   Connection() = Connection(DEFAULT_HOST)
 end
 
 function connurl(c::Connection)
