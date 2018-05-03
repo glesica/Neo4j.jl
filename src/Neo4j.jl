@@ -14,27 +14,37 @@ const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
 const DEFAULT_URI = "/db/data/"
 
-typealias JSONObject{T <: AbstractString} Union{Dict{T,Any},Void}  # UTF8String
-typealias JSONArray Union{Vector,Void}
-typealias JSONData{T <: AbstractString} Union{JSONObject,JSONArray,T,Number,Void}
+const JSONObject{T <: AbstractString} = Union{Dict{T,Any},Void}  # UTF8String
+const JSONArray = Union{Vector,Void}
+const JSONData{T <: AbstractString} = Union{JSONObject,JSONArray,T,Number,Void}
 
-typealias QueryData Union{Dict{Any,Any},Void}
+const QueryData = Union{Dict{Any,Any},Void}
 
 # ----------
 # Connection
 # ----------
 
-immutable Connection
-  tls::Bool
-  host::AbstractString #UTF8String
-  port::Int
-  path::AbstractString #UTF8String
-  url::AbstractString #UTF8String
-  user::AbstractString #UTF8String
-  password::AbstractString #UTF8String
+"""
+   Connection()
 
-  Connection{T <: AbstractString}(host::T; port=DEFAULT_PORT, path=DEFAULT_URI, tls=false, user="", password="") = new(tls, string(host), port, string(path), string("http://$host:$port$path"), string(user), string(password))
-  Connection() = new(DEFAULT_HOST)
+### Examples
+```julia-repl
+julia> con = Neo4j.Connection("localhost")
+Neo4j.Connection(false, "localhost", 7474, "/db/data/", "http://localhost:7474/db/data/", "", "")
+```
+"""
+struct Connection
+   host::AbstractString #UTF8String
+   tls::Bool
+   port::Int
+   path::AbstractString #UTF8String
+   url::AbstractString #UTF8String
+   user::AbstractString #UTF8String
+   password::AbstractString #UTF8String
+
+   Connection{T <: AbstractString}(host::T; port = DEFAULT_PORT, path = DEFAULT_URI, tls = false, user = "", password = "") = 
+      new(string(host), tls, port, string(path), string("http://$host:$port$path"), string(user), string(password))
+   Connection() = Connection(DEFAULT_HOST)
 end
 
 function connurl(c::Connection)
@@ -42,7 +52,7 @@ function connurl(c::Connection)
   "$(proto)://$(c.host):$(c.port)$(c.path)"
 end
 
-function connurl{T <: AbstractString}(c::Connection, suffix::T)
+function connurl(c::Connection, suffix::T) where {T <: AbstractString}
   url = connurl(c)
   "$(url)$(suffix)"
 end
@@ -62,22 +72,22 @@ end
 # Graph
 # -----
 
-immutable Graph
+struct Graph
     # TODO extensions
-    node::AbstractString #UTF8String
-    node_index::AbstractString #UTF8String
-    relationship_index::AbstractString #UTF8String
-    extensions_info::AbstractString #UTF8String
-    relationship_types::AbstractString #UTF8String
-    batch::AbstractString #UTF8String
-    cypher::AbstractString #UTF8String
-    indexes::AbstractString #UTF8String
-    constraints::AbstractString #UTF8String
-    transaction::AbstractString #UTF8String
-    node_labels::AbstractString #UTF8String
-    version::AbstractString #UTF8String
+    node::AbstractString                  #UTF8String
+    node_index::AbstractString            #UTF8String
+    relationship_index::AbstractString    #UTF8String
+    extensions_info::AbstractString       #UTF8String
+    relationship_types::AbstractString    #UTF8String
+    batch::AbstractString                 #UTF8String
+    cypher::AbstractString                #UTF8String
+    indexes::AbstractString               #UTF8String
+    constraints::AbstractString           #UTF8String
+    transaction::AbstractString           #UTF8String
+    node_labels::AbstractString           #UTF8String
+    version::AbstractString               #UTF8String
     connection::Connection
-    relationship::AbstractString #UTF8String # Not in the spec
+    relationship::AbstractString          #UTF8String # Not in the spec
 end
 
 # UTF8String
@@ -104,7 +114,7 @@ end
 # Node
 # ----
 
-immutable Node
+struct Node
     # TODO extensions
     paged_traverse::AbstractString #UTF8String
     labels::AbstractString #UTF8String
@@ -139,7 +149,7 @@ end
 # Statements
 # ----------
 
-immutable Statement
+struct Statement
   statement::AbstractString
   parameters::Dict
 end
@@ -148,7 +158,7 @@ end
 # Results
 # -------
 
-immutable Result
+struct Result
   results::Vector
   errors::Vector
 end
@@ -163,18 +173,18 @@ include("transaction.jl")
 # Requests
 # --------
 
-function request{T <: AbstractString}(url::AbstractString, method::Function, exp_code::Int,
-                 headers::Dict{T, T}; json::JSONData=nothing, # ASCIIString,ASCIIString
-                 query::QueryData=nothing)
+function request(url::AbstractString, method::Function, exp_code::Int,
+                 headers::Dict{T, T}; json::JSONData = nothing, # ASCIIString,ASCIIString
+                 query::QueryData = nothing) where {T <: AbstractString}
     if json == nothing && query == nothing
-        resp = method(url; headers=headers)
+        resp = method(url; headers = headers)
     elseif json == nothing
-        resp = method(url; headers=headers, query=query)
+        resp = method(url; headers = headers, query = query)
     elseif query == nothing
-        resp = method(url; headers=headers, json=json)
+        resp = method(url; headers = headers, json = json)
     else
         # TODO Figure out if this should ever occur and change it to an error if not
-        resp = method(url; headers=headers, json=json, query=query)
+        resp = method(url; headers = headers, json = json, query=query)
     end
     if resp.status !== exp_code
         respdata = Requests.json(resp)
@@ -191,7 +201,7 @@ end
 # External requests
 # -----------------
 
-function createnode(graph::Graph, props::JSONData=nothing)
+function createnode(graph::Graph, props::JSONData = nothing)
     resp = request(graph.node, Requests.post, 201, connheaders(graph.connection); json=props)
     jsrsp = Dict{AbstractString,Any}(Requests.json(resp)) # UTF8String
     # @show typeof(jsrsp)
@@ -217,12 +227,12 @@ function deletenode(graph::Graph, id::Int)
     deletenode(node)
 end
 
-function setnodeproperty{T <: AbstractString}(node::Node, name::T, value::Any)
+function setnodeproperty(node::Node, name::T, value::Any) where {T <: AbstractString}
     url = replace(node.property, "{key}", name)
     request(url, Requests.put, 204, connheaders(node.graph.connection); json=value)
 end
 
-function setnodeproperty{T <: AbstractString}(graph::Graph, id::Int, name::T, value::Any)
+function setnodeproperty(graph::Graph, id::Int, name::T, value::Any) where {T <: AbstractString}
     node = getnode(graph, id)
     setnodeproperty(node, name, value)
 end
@@ -231,7 +241,7 @@ function updatenodeproperties(node::Node, props::JSONObject)
     resp = request(node.properties, Requests.put, 204, connheaders(node.graph.connection); json=props)
 end
 
-function getnodeproperty{T <: AbstractString}(node::Node, name::T)
+function getnodeproperty(node::Node, name::T) where {T <: AbstractString}
     url = replace(node.property, "{key}", name)
     resp = request(url, Requests.get, 200, connheaders(node.graph.connection))
     Requests.json(resp)
@@ -251,12 +261,12 @@ function deletenodeproperties(node::Node)
     request(node.properties, Requests.delete, 204, connheaders(node.graph.connection))
 end
 
-function deletenodeproperty{T <: AbstractString}(node::Node, name::T)
+function deletenodeproperty(node::Node, name::T) where {T <: AbstractString}
     url = replace(node.property, "{key}", name)
     request(url, Requests.delete, 204, connheaders(node.graph.connection))
 end
 
-function addnodelabel{T <: AbstractString}(node::Node, label::T)
+function addnodelabel(node::Node, label::T) where {T <: AbstractString}
     request(node.labels, Requests.post, 204, connheaders(node.graph.connection); json=label)
 end
 
@@ -268,7 +278,7 @@ function updatenodelabels(node::Node, labels::JSONArray)
     request(node.labels, Requests.put, 204, connheaders(node.graph.connection); json=labels)
 end
 
-function deletenodelabel{T <: AbstractString}(node::Node, label::T)
+function deletenodelabel(node::Node, label::T) where {T <: AbstractString}
     url = "$(node.labels)/$label"
     request(url, Requests.delete, 204, connheaders(node.graph.connection))
 end
@@ -278,7 +288,7 @@ function getnodelabels(node::Node)
     Requests.json(resp)
 end
 
-function getnodesforlabel{T <: AbstractString}(graph::Graph, label::T, props::JSONObject=nothing)
+function getnodesforlabel(graph::Graph, label::T, props::JSONObject=nothing) where {T <: AbstractString}
     # TODO Shouldn't this url be available in the api somewhere?
     url = "$(graph.connection.url)label/$label/nodes"
     resp = request(url, Requests.get, 200, connheaders(graph.connection); query=props)
@@ -294,7 +304,7 @@ end
 # Relationships
 # -------------
 
-immutable Relationship
+struct Relationship
     relstart::AbstractString #UTF8String
     property::AbstractString #UTF8String
     self::AbstractString #UTF8String
@@ -311,7 +321,7 @@ Relationship(data::JSONObject, graph::Graph) = Relationship(data["start"], data[
         data["self"], data["properties"], data["metadata"], data["type"], data["end"], data["data"],
         split(data["self"], "/")[end] |> parse, graph)
 
-function getrels(node::Node; incoming::Bool=true, outgoing::Bool=true)
+function getrels(node::Node; incoming::Bool = true, outgoing::Bool = true)
   rels = Vector{Relationship}()
   if(incoming)
     resp = request(node.incoming_relationships, Requests.get, 200, connheaders(node.graph.connection))
@@ -328,19 +338,19 @@ function getrels(node::Node; incoming::Bool=true, outgoing::Bool=true)
   rels
 end
 
-function getneighbors(node::Node; incoming::Bool=true, outgoing::Bool=true)
+function getneighbors(node::Node; incoming::Bool = true, outgoing::Bool = true)
   neighbors = Vector{Node}()
 
   # Do incoming
   if(incoming)
-    rels = getrels(node, incoming=true, outgoing=false)
+    rels = getrels(node, incoming = true, outgoing = false)
     for rel=rels
       resp = request(rel.relstart, Requests.get, 200, connheaders(node.graph.connection))
       push!(neighbors, Node(Dict{AbstractString,Any}(Requests.json(resp)), node.graph))  # UTF8String
     end
   end
   if(outgoing)
-    rels = getrels(node, incoming=false, outgoing=true)
+    rels = getrels(node, incoming = false, outgoing = true)
     for rel=rels
       resp = request(rel.relend, Requests.get, 200, connheaders(node.graph.connection))
       push!(neighbors, Node(Dict{AbstractString,Any}(Requests.json(resp)), node.graph))  # UTF8String
