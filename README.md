@@ -10,7 +10,7 @@ Really easy to use, have a look at ```test/runtests.jl``` for the available meth
 ```julia
 c = Connection("localhost"; user="neo4j", password="neo4j")
 tx = transaction(c)
-tx("CREATE (n:Lang) SET n.name = '{name}'", "name" => "Julia")
+tx("CREATE (n:Lang) SET n.name = \$name", "name" => "Julia")
 tx("MATCH (n:Lang) RETURN n LIMIT {limit}", "limit" => 10)
 results = commit(tx)
 ```
