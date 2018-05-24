@@ -251,4 +251,26 @@ rollresult = rolltx("MATCH (n:Neo4jjl) WHERE n.name = 'John Doe' RETURN n"; subm
 @test length(rollresult.errors) == 0
 
 println("Success!");
+
+
+# --- New cypherQuery using transaction/commit endpoint ---
+
+print("[TEST] MATCH node and return DataFrame using cypherQuery()...")
+
+# Open transaction and create node
+loadtx = transaction(conn)
+createnode(loadtx, "John Doe", 20; submit=true)
+Neo4j.commit(loadtx)
+
+matchresult = cypherQuery(conn, 
+                  "MATCH (n:Neo4jjl {name: {name}}) RETURN n.name AS Name, n.age AS Age;", 
+                  "name" => "John Doe")
+@test DataFrames.DataFrame(Name = "John Doe", Age = 20) == matchresult
+
+# Cleanup
+deletetx = transaction(conn)
+deletetx(query, "age" => 20)
+deleteresult = commit(deletetx)
+
+println("Success!");
 println("--- All tests passed!");
