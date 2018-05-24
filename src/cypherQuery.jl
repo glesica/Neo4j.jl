@@ -46,7 +46,7 @@ function cypherQuery(
    end
    # parse results into data sink
    # Result(respdata["results"], respdata["errors"])
-   if !isempty(respdata["results"])
+   if !isempty(respdata["results"][1]["data"])
       return parseResults(respdata["results"][1], elTypes = elTypes, nRowsElTypeCheck = nRowsElTypeCheck);
    else
       return DataFrames.DataFrame();
