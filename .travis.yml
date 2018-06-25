@@ -1,8 +1,14 @@
 language: julia
 julia:
   - 0.6
+  - nightly
 notifications:
   email: false
+## (tests will run but not make your overall status red)
+matrix:
+ allow_failures:
+ - julia: nightly
+
 before_install:
   - wget dist.neo4j.org/neo4j-community-3.3.5-unix.tar.gz
   - tar -xzf neo4j-community-3.3.5-unix.tar.gz
