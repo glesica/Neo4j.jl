@@ -28,3 +28,12 @@ Rollbacks are also supported:
 ```julia
 rollback(tx)
 ```
+
+If the goal is to simply run a MATCH query and having the result in the form of a 
+`DataFrames.DataFrame` object, the `cypherQuery` function can be used.
+The `cypherQuery` implementation performs the query in a single trnsaction which 
+automatically opens and closes the transaction:
+
+```julia
+results = cypherQuery("MATCH (n) RETURN n.property AS Property")
+```
