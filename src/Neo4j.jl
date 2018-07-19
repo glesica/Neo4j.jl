@@ -7,7 +7,7 @@ export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getn
        getnodeproperties, updatenodeproperties, deletenodeproperties, deletenodeproperty,
        addnodelabel, addnodelabels, updatenodelabels, deletenodelabel, getnodelabels,
        getnodesforlabel, getlabels, getrel, getrels, getneighbors, createrel, deleterel, getrelproperty,
-       getrelproperties, updaterelproperties
+       getrelproperties, updaterelproperties, cypherQuery
 export Connection, Result
 
 const DEFAULT_HOST = "localhost"
@@ -392,5 +392,10 @@ end
 function updaterelproperties(rel::Relationship, props::JSONObject)
     request(rel.properties, Requests.put, 204, connheaders(rel.graph.connection); json=props)
 end
+
+# ------------
+# Cypher query
+# ------------
+include("cypherQuery.jl")
 
 end # module
