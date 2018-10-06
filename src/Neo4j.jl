@@ -172,18 +172,19 @@ include("transaction.jl")
 # --------
 
 function request(url::AbstractString, method::Function, exp_code::Int,
-                 headers::Dict{T, T}; json::JSONData = nothing, # ASCIIString,ASCIIString
+                 headers::Dict{T, T}; jsonDict::JSONData = nothing, # ASCIIString,ASCIIString
                  query::QueryData = nothing)::AbstractString where {T <: AbstractString}
-    if json == nothing && query == nothing
+    if jsonDict == nothing && query == nothing
         resp = method(url; headers = headers)
-    elseif json == nothing
+    elseif jsonDict == nothing
         resp = method(url; headers = headers, query=query)
     elseif query == nothing
-        resp = method(url; headers = headers, body=JSON.json(json))
+        resp = method(url; headers = headers, body=JSON.json(jsonDict))
     else
         # TODO Figure out if this should ever occur and change it to an error if not
-        resp = method(url; headers = headers, body=JSON.json(json), query=query)
+        resp = method(url; headers = headers, body=JSON.json(jsonDict), query=query)
     end
+    @show resp
     if resp.status != exp_code
         respdata = JSON.parse(String(resp.body))
         if respdata !== nothing && "message" in keys(respdata)
@@ -200,7 +201,7 @@ end
 # -----------------
 
 function createnode(graph::Graph, props::JSONData = nothing)
-    resp = request(graph.node, HTTP.post, 201, connheaders(graph.connection); json=props)
+    resp = request(graph.node, HTTP.post, 201, connheaders(graph.connection); jsonDict=props)
     jsrsp = Dict{AbstractString,Any}(JSON.parse(resp)) # UTF8String
     # @show typeof(jsrsp)
     Node(jsrsp, graph)
@@ -227,7 +228,7 @@ end
 
 function setnodeproperty(node::Node, name::T, value::Any) where {T <: AbstractString}
     url = replace(node.property, "{key}", name)
-    request(url, HTTP.put, 204, connheaders(node.graph.connection); json=value)
+    request(url, HTTP.put, 204, connheaders(node.graph.connection); jsonDict=value)
 end
 
 function setnodeproperty(graph::Graph, id::Int, name::T, value::Any) where {T <: AbstractString}
@@ -236,7 +237,7 @@ function setnodeproperty(graph::Graph, id::Int, name::T, value::Any) where {T <:
 end
 
 function updatenodeproperties(node::Node, props::JSONObject)
-    resp = request(node.properties, HTTP.put, 204, connheaders(node.graph.connection); json=props)
+    resp = request(node.properties, HTTP.put, 204, connheaders(node.graph.connection); jsonDict=props)
 end
 
 function getnodeproperty(node::Node, name::T) where {T <: AbstractString}
@@ -265,15 +266,15 @@ function deletenodeproperty(node::Node, name::T) where {T <: AbstractString}
 end
 
 function addnodelabel(node::Node, label::T) where {T <: AbstractString}
-    request(node.labels, HTTP.post, 204, connheaders(node.graph.connection); json=label)
+    request(node.labels, HTTP.post, 204, connheaders(node.graph.connection); jsonDict=label)
 end
 
 function addnodelabels(node::Node, labels::JSONArray)
-    request(node.labels, HTTP.post, 204, connheaders(node.graph.connection); json=labels)
+    request(node.labels, HTTP.post, 204, connheaders(node.graph.connection); jsonDict=labels)
 end
 
 function updatenodelabels(node::Node, labels::JSONArray)
-    request(node.labels, HTTP.put, 204, connheaders(node.graph.connection); json=labels)
+    request(node.labels, HTTP.put, 204, connheaders(node.graph.connection); jsonDict=labels)
 end
 
 function deletenodelabel(node::Node, label::T) where {T <: AbstractString}
@@ -368,7 +369,7 @@ function createrel(from::Node, to::Node, reltype::AbstractString; props::JSONObj
     if props !== nothing
         body["data"] = props
     end
-    resp = request(from.create_relationship, HTTP.post, 201, connheaders(from.graph.connection), json=body)
+    resp = request(from.create_relationship, HTTP.post, 201, connheaders(from.graph.connection), jsonDict=body)
     Relationship(Dict{AbstractString,Any}(JSON.parse(resp)), from.graph) # UTF8String
 end
 
@@ -388,7 +389,7 @@ function getrelproperties(rel::Relationship)
 end
 
 function updaterelproperties(rel::Relationship, props::JSONObject)
-    request(rel.properties, HTTP.put, 204, connheaders(rel.graph.connection); json=props)
+    request(rel.properties, HTTP.put, 204, connheaders(rel.graph.connection); jsonDict=props)
 end
 
 # ------------
