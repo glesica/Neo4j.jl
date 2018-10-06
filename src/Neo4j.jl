@@ -179,10 +179,10 @@ function request(url::AbstractString, method::Function, exp_code::Int,
     elseif json == nothing
         resp = method(url; headers = headers, query=query)
     elseif query == nothing
-        resp = method(url; headers = headers, body=json)
+        resp = method(url; headers = headers, body=JSON.json(json))
     else
         # TODO Figure out if this should ever occur and change it to an error if not
-        resp = method(url; headers = headers, body=json, query=query)
+        resp = method(url; headers = headers, body=JSON.json(json), query=query)
     end
     if resp.status != exp_code
         respdata = JSON.parse(String(resp.body))
