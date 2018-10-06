@@ -1,10 +1,10 @@
-using Neo4j
+using Neo4j, DataFrames
 using Test
 
 @test (@isdefined Neo4j) == true
 @test typeof(Neo4j) == Module
 
-global graph = nothing
+graph = nothing
 try
   print("[TEST] Creating a Neo4j connection to localhost:7474 with no credentials...");
   graph = getgraph()

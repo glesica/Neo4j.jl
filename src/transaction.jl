@@ -18,14 +18,18 @@ function transaction(conn::Connection)::Transaction
   headers = connheaders(conn)
   body = Dict("statements" => [ ])
 
-  resp = HTTP.post(url; headers=headers, body=body)
+  resp = HTTP.post(url; headers=headers, body=JSON.json(body))
   if resp.status != 201
     error("Failed to connect to database ($(resp.status)): $(conn)\n$(resp)")
   end
   respdata = JSON.parse(String(resp.body))
-  respheaders = resp.headers
+  # Get the header with entry "Location"
+  location = filter(h->h[1]=="Location", resp.headers)
+  if length(location) == 0
+      error("Could not header with key 'Location' in response body of the transaction.")
+  end
 
-  return Transaction(conn, respdata["commit"], respheaders["Location"], Statement[])
+  return Transaction(conn, respdata["commit"], location[1][2], Statement[])
 end
 
 function (txn::Transaction)(cypher::AbstractString, params::Pair...;
@@ -36,7 +40,7 @@ function (txn::Transaction)(cypher::AbstractString, params::Pair...;
     headers = connheaders(txn.conn)
     body = Dict("statements" => txn.statements)
 
-    resp = HTTP.post(url; headers=headers, body=body)
+    resp = HTTP.post(url; headers=headers, body=JSON.json(body))
     if resp.status != 200
       error("Failed to submit transaction ($(resp.status)): $(txn)\n$(resp)")
     end
@@ -54,12 +58,12 @@ function commit(txn::Transaction)::Result
   headers = connheaders(txn.conn)
   body = Dict("statements" => txn.statements)
 
-  resp = HTTP.post(url; headers=headers, json=body)
+  resp = HTTP.post(url; headers=headers, body=JSON.json(body))
 
   if resp.status != 200
     error("Failed to commit transaction ($(resp.status)): $(txn)\n$(resp)")
   end
-  respdata = JSON.parse(String(resp))
+  respdata = JSON.parse(String(resp.body))
 
   return Result(respdata["results"], respdata["errors"])
 end

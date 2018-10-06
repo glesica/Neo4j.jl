@@ -172,28 +172,32 @@ include("transaction.jl")
 # --------
 
 function request(url::AbstractString, method::Function, exp_code::Int,
-                 headers::Dict{T, T}; jsonDict::JSONData = nothing, # ASCIIString,ASCIIString
+                 headers::Dict{T, T}; jsonDict::JSONData = nothing,
                  query::QueryData = nothing)::AbstractString where {T <: AbstractString}
-    if jsonDict == nothing && query == nothing
-        resp = method(url; headers = headers)
-    elseif jsonDict == nothing
-        resp = method(url; headers = headers, query=query)
-    elseif query == nothing
-        resp = method(url; headers = headers, body=JSON.json(jsonDict))
-    else
-        # TODO Figure out if this should ever occur and change it to an error if not
-        resp = method(url; headers = headers, body=JSON.json(jsonDict), query=query)
-    end
-    @show resp
-    if resp.status != exp_code
-        respdata = JSON.parse(String(resp.body))
-        if respdata !== nothing && "message" in keys(respdata)
-            error("Neo4j error: $(respdata["message"])")
+    resp = nothing
+    try
+        # Simplified to a single call
+        body = jsonDict != nothing ? JSON.json(jsonDict) : ""
+        resp = method(url; headers = headers, body=body, query=query)
+    catch ex
+        # Handle status errors specifically.
+        if ex isa HTTP.ExceptionRequest.StatusError
+            resp = ex.response
         else
-            error("Neo4j error: $(url) returned $(resp.status)")
+            rethrow(ex)
         end
+    finally
+        if resp.status != exp_code
+            respdata = JSON.parse(String(resp.body))
+            if respdata !== nothing && "message" in keys(respdata)
+                error("Neo4j error: $(respdata["message"])")
+            else
+                error("Neo4j error: $(url) returned $(resp.status)")
+            end
+        end
+        # Great, return the response body
+        return String(resp.body)
     end
-    return String(resp.body)
 end
 
 # -----------------

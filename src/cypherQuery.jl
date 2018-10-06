@@ -34,12 +34,12 @@ function cypherQuery(
    headers = connheaders(conn)
    body = Dict("statements" => [Statement(cypher, Dict(params))])
 
-   resp = HTTP.post(url; headers=headers, body=body)
+   resp = HTTP.post(url; headers=headers, body=JSON.json(body))
 
    if resp.status != 200
      error("Failed to commit transaction ($(resp.status)): $(txn)\n$(resp)")
    end
-   respdata = Requests.json(resp.body)
+   respdata = JSON.parse(String(resp.body))
 
    if !isempty(respdata["errors"])
       error(join(map(i -> (i * ": " * respdata["errors"][1][i]), keys(respdata["errors"][1])), "\n"));
