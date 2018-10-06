@@ -98,10 +98,10 @@ Graph(data::Dict{T,Any}, conn::Connection) where {T <: AbstractString} = Graph(d
 
 function getgraph(conn::Connection)
     resp = HTTP.get(conn.url; headers=connheaders(conn))
-    if resp.status !== 200
+    if resp.status != 200
         error("Connection to server unsuccessful: $(resp.status)")
     end
-    Graph(Dict{AbstractString,Any}(JSON.parse(resp)), conn) # UTF8String
+    Graph(Dict{AbstractString,Any}(JSON.parse(String(resp.body))), conn) # UTF8String
 end
 
 function getgraph()
@@ -184,7 +184,7 @@ function request(url::AbstractString, method::Function, exp_code::Int,
         # TODO Figure out if this should ever occur and change it to an error if not
         resp = method(url; headers = headers, body=json, query=query)
     end
-    if resp.status !== exp_code
+    if resp.status != exp_code
         respdata = JSON.parse(String(resp.body))
         if respdata !== nothing && "message" in keys(respdata)
             error("Neo4j error: $(respdata["message"])")
@@ -200,7 +200,7 @@ end
 # -----------------
 
 function createnode(graph::Graph, props::JSONData = nothing)
-    resp = request(graph.node, Http.post, 201, connheaders(graph.connection); json=props)
+    resp = request(graph.node, HTTP.post, 201, connheaders(graph.connection); json=props)
     jsrsp = Dict{AbstractString,Any}(JSON.parse(resp)) # UTF8String
     # @show typeof(jsrsp)
     Node(jsrsp, graph)
@@ -265,11 +265,11 @@ function deletenodeproperty(node::Node, name::T) where {T <: AbstractString}
 end
 
 function addnodelabel(node::Node, label::T) where {T <: AbstractString}
-    request(node.labels, Http.post, 204, connheaders(node.graph.connection); json=label)
+    request(node.labels, HTTP.post, 204, connheaders(node.graph.connection); json=label)
 end
 
 function addnodelabels(node::Node, labels::JSONArray)
-    request(node.labels, Http.post, 204, connheaders(node.graph.connection); json=labels)
+    request(node.labels, HTTP.post, 204, connheaders(node.graph.connection); json=labels)
 end
 
 function updatenodelabels(node::Node, labels::JSONArray)
@@ -368,7 +368,7 @@ function createrel(from::Node, to::Node, reltype::AbstractString; props::JSONObj
     if props !== nothing
         body["data"] = props
     end
-    resp = request(from.create_relationship, Http.post, 201, connheaders(from.graph.connection), json=body)
+    resp = request(from.create_relationship, HTTP.post, 201, connheaders(from.graph.connection), json=body)
     Relationship(Dict{AbstractString,Any}(JSON.parse(resp)), from.graph) # UTF8String
 end
 
