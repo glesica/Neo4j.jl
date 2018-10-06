@@ -3,8 +3,6 @@
 # transaction can be a single request, or it can be held open through many
 # requests as a means of batching jobs together.
 
-using Compat
-
 export transaction, rollback, commit
 
 struct Transaction

@@ -1,10 +1,10 @@
 using Neo4j
-using Base.Test
+using Test
 
-@test isdefined(:Neo4j) == true
+@test (@isdefined Neo4j) == true
 @test typeof(Neo4j) == Module
 
-graph = nothing
+global graph = nothing
 try
   print("[TEST] Creating a Neo4j connection to localhost:7474 with no credentials...");
   graph = getgraph()
@@ -262,8 +262,8 @@ loadtx = transaction(conn)
 createnode(loadtx, "John Doe", 20; submit=true)
 Neo4j.commit(loadtx)
 
-matchresult = cypherQuery(conn, 
-                  "MATCH (n:Neo4jjl {name: {name}}) RETURN n.name AS Name, n.age AS Age;", 
+matchresult = cypherQuery(conn,
+                  "MATCH (n:Neo4jjl {name: {name}}) RETURN n.name AS Name, n.age AS Age;",
                   "name" => "John Doe")
 @test DataFrames.DataFrame(Name = "John Doe", Age = 20) == matchresult
 

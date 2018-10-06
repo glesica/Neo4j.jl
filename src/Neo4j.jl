@@ -14,11 +14,11 @@ const DEFAULT_HOST = "localhost"
 const DEFAULT_PORT = 7474
 const DEFAULT_URI = "/db/data/"
 
-const JSONObject{T <: AbstractString} = Union{Dict{T,Any},Void}  # UTF8String
-const JSONArray = Union{Vector,Void}
-const JSONData{T <: AbstractString} = Union{JSONObject,JSONArray,T,Number,Void}
+const JSONObject{T <: AbstractString} = Union{Dict{T,Any},Nothing}  # UTF8String
+const JSONArray = Union{Vector,Nothing}
+const JSONData{T <: AbstractString} = Union{JSONObject,JSONArray,T,Number,Nothing}
 
-const QueryData = Union{Dict{Any,Any},Void}
+const QueryData = Union{Dict{Any,Any},Nothing}
 
 # ----------
 # Connection
@@ -42,7 +42,7 @@ struct Connection
    user::AbstractString #UTF8String
    password::AbstractString #UTF8String
 
-   Connection{T <: AbstractString}(host::T; port = DEFAULT_PORT, path = DEFAULT_URI, tls = false, user = "", password = "") =
+   Connection(host::T; port = DEFAULT_PORT, path = DEFAULT_URI, tls = false, user = "", password = "") where {T <: AbstractString} =
       new(string(host), tls, port, string(path), string("http://$host:$port$path"), string(user), string(password))
    Connection() = Connection(DEFAULT_HOST)
 end
@@ -91,13 +91,13 @@ struct Graph
 end
 
 # UTF8String
-Graph{T <: AbstractString}(data::Dict{T,Any}, conn::Connection) = Graph(data["node"], data["node_index"], data["relationship_index"],
+Graph(data::Dict{T,Any}, conn::Connection) where {T <: AbstractString} = Graph(data["node"], data["node_index"], data["relationship_index"],
     data["extensions_info"], data["relationship_types"], data["batch"], data["cypher"], data["indexes"],
     data["constraints"], data["transaction"], data["node_labels"], data["neo4j_version"], conn,
     "$(conn.url)relationship")
 
 function getgraph(conn::Connection)
-    resp = get(conn.url; headers=connheaders(conn))
+    resp = HTTP.get(conn.url; headers=connheaders(conn))
     if resp.status !== 200
         error("Connection to server unsuccessful: $(resp.status)")
     end
