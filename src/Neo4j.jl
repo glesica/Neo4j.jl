@@ -1,6 +1,6 @@
 module Neo4j
 
-using Requests
+using HTTP
 using JSON
 
 export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperty,
@@ -42,7 +42,7 @@ struct Connection
    user::AbstractString #UTF8String
    password::AbstractString #UTF8String
 
-   Connection{T <: AbstractString}(host::T; port = DEFAULT_PORT, path = DEFAULT_URI, tls = false, user = "", password = "") = 
+   Connection{T <: AbstractString}(host::T; port = DEFAULT_PORT, path = DEFAULT_URI, tls = false, user = "", password = "") =
       new(string(host), tls, port, string(path), string("http://$host:$port$path"), string(user), string(password))
    Connection() = Connection(DEFAULT_HOST)
 end

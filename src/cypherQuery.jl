@@ -17,29 +17,29 @@ and moreover information on Ensembl gene, transcript and peptide IDs, such as ID
 ### Examples
 ```julia-repl
 julia> cypherQuery(
-         Neo4j.Connection("localhost"), 
-         "MATCH (p :Person {name: {name}}) RETURN p.name AS Name, p.age AS Age;", 
+         Neo4j.Connection("localhost"),
+         "MATCH (p :Person {name: {name}}) RETURN p.name AS Name, p.age AS Age;",
          "name" => "John Doe")
 
 ```
 """
 function cypherQuery(
-      conn::Connection, 
-      cypher::AbstractString, 
+      conn::Connection,
+      cypher::AbstractString,
       params::Pair...;
       elTypes::Vector{DataType} = Vector{DataType}(),
-      nRowsElTypeCheck::Int = 1000)
-   
+      nRowsElTypeCheck::Int = 1000)::DataFrames.DataFrame
+
    url = connurl(conn, "transaction/commit")
    headers = connheaders(conn)
    body = Dict("statements" => [Statement(cypher, Dict(params))])
- 
-   resp = Requests.post(url; headers=headers, json=body)
- 
+
+   resp = HTTP.post(url; headers=headers, body=body)
+
    if resp.status != 200
      error("Failed to commit transaction ($(resp.status)): $(txn)\n$(resp)")
    end
-   respdata = Requests.json(resp)
+   respdata = Requests.json(resp.body)
 
    if !isempty(respdata["errors"])
       error(join(map(i -> (i * ": " * respdata["errors"][1][i]), keys(respdata["errors"][1])), "\n"));
@@ -55,7 +55,7 @@ end
 
 # Currently only supports DataFrames.DataFrame objects
 #  -> Future: Allow different data sink types, such as tables from JuliaDB
-function parseResults(res::Dict{String, Any}; elTypes::Vector{DataType} = Vector(), nRowsElTypeCheck::Int = 100)
+function parseResults(res::Dict{String, Any}; elTypes::Vector{DataType} = Vector(), nRowsElTypeCheck::Int = 100)::DataFrames.DataFrame
    # Get elementary types from a column where there is no NA value (nothing)
    if isempty(elTypes)
       elTypes = getElTypes(res["data"], nRowsElTypeCheck);
@@ -76,7 +76,7 @@ function parseResults(res::Dict{String, Any}; elTypes::Vector{DataType} = Vector
    return x;
 end
 
-function getElTypes(x::Vector{Any}, nRowsElTypeCheck::Int = 0)
+function getElTypes(x::Vector{Any}, nRowsElTypeCheck::Int = 0)::Vector{Type}
    nRecords = length(x);
    elTypes::Vector{Type} = Type[Union{Void, Missings.Missing} for i in 1:length(x[1]["row"])];
    nMaxRows = nRecords;
@@ -88,11 +88,11 @@ function getElTypes(x::Vector{Any}, nRowsElTypeCheck::Int = 0)
       for el in find(checkIdx)
          if !(x[i]["row"][el] == nothing)
             if !(typeof(x[i]["row"][el]) === Array{Any,1})
-               elTypes[el] = i > 1 ? 
-                     Union{typeof(x[i]["row"][el]), Missings.Missing} : 
+               elTypes[el] = i > 1 ?
+                     Union{typeof(x[i]["row"][el]), Missings.Missing} :
                      typeof(x[i]["row"][el]);
             else
-               elTypes[el] = i > 1 ? 
+               elTypes[el] = i > 1 ?
                      Union{Vector{typeof(x[i]["row"][el][1])}, Missings.Missing} :
                      Vector{typeof(x[i]["row"][el][1])};
             end
