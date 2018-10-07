@@ -6,109 +6,113 @@ using Test
     @test typeof(Neo4j) == Module
 end
 
-graph = nothing
-conn = nothing
+# defaults for testing
+global username = "neo4j"
+global passwd = "neo5j"
+
+global graph = nothing
+global conn = nothing
 @testset "Creating a connection to localhost" begin
     try
-      graph = getgraph()
+      global graph = getgraph()
     catch
-      info("[TEST] Anonymous connection failed! Creating a Neo4j connection to localhost:7474 with neo4j:neo5j credentials...");
+      @info "[TEST] Anonymous connection failed! Creating a Neo4j connection to localhost:7474 with neo4j:marine credentials..."
       #Trying with security.
-      conn = Neo4j.Connection("localhost"; user="neo4j", password="neo5j");
-      graph = getgraph(conn);
+      global conn = Neo4j.Connection("localhost"; user=username, password=passwd);
+      global graph = getgraph(conn);
     end
-    conn = graph.connection;
+    global conn = graph.connection;
 end
 
 @testset "Checking version of connected graph = Neo4j $(ascii(graph.version))..." begin
     # Have to account for newer Neo4j! Using version text - ref: http://docs.julialang.org/en/release-0.4/manual/strings/
-    @test convert(VersionNumber, graph.version) >  v"2.0.0"
+    @test VersionNumber(graph.version) > v"2.0.0" # convert(VersionNumber, graph.version) >  v"2.0.0"
     # Check that
     @test graph.node == "http://localhost:7474/db/data/node"
 end
 
-barenode = nothing
-propnode = nothing
+global barenode = nothing
+global propnode = nothing
 @testset "Nodes: CRUD, properties, and labels..." begin
-    barenode = Neo4j.createnode(graph)
+    global barenode = Neo4j.createnode(graph)
     @test barenode.self == "http://localhost:7474/db/data/node/$(barenode.id)"
 
-    propnode = Neo4j.createnode(graph, Dict{AbstractString,Any}("a" => "A", "b" => 1))  #UTF8String
+    global propnode = Neo4j.createnode(graph, Dict{AbstractString,Any}("a" => "A", "b" => 1))  #UTF8String
     @test propnode.data["a"] == "A"
     @test propnode.data["b"] == 1
 
-    gotnode = getnode(graph, propnode.id)
+    global gotnode = getnode(graph, propnode.id)
     @test gotnode.id == propnode.id
     @test gotnode.data["a"] == "A"
     @test gotnode.data["b"] == 1
 
     setnodeproperty(barenode, "a", "A")
-    barenode = getnode(barenode)
+    global barenode = getnode(barenode)
     @test barenode.data["a"] == "A"
 
-    props = getnodeproperties(propnode)
+    global props = getnodeproperties(propnode)
     @test props["a"] == "A"
     @test props["b"] == 1
     @test length(props) == 2
 
     updatenodeproperties(barenode, Dict{AbstractString,Any}("a" => 1, "b" => "A"))  #UTF8String
-    barenode = getnode(barenode)
+    global barenode = getnode(barenode)
     @test barenode.data["a"] == 1
     @test barenode.data["b"] == "A"
 
     deletenodeproperties(barenode)
-    barenode = getnode(barenode)
+    global barenode = getnode(barenode)
     @test length(barenode.data) == 0
 
     deletenodeproperty(propnode, "b")
-    propnode = getnode(propnode)
+    global propnode = getnode(propnode)
     @test length(propnode.data) == 1
     @test propnode.data["a"] == "A"
 
     addnodelabel(barenode, "A")
-    barenode = getnode(barenode)
+    global barenode = getnode(barenode)
     @test getnodelabels(barenode) == ["A"]
 
     addnodelabels(barenode, ["B", "C"])
-    barenode = getnode(barenode)
-    labels = getnodelabels(barenode)
+    global barenode = getnode(barenode)
+    global labels = getnodelabels(barenode)
     @test "A" in labels
     @test "B" in labels
     @test "C" in labels
     @test length(labels) == 3
 
     updatenodelabels(barenode, ["D", "E", "F"])
-    barenode = getnode(barenode)
-    labels = getnodelabels(barenode)
+    global barenode = getnode(barenode)
+    global labels = getnodelabels(barenode)
     @test "D" in labels
     @test "E" in labels
     @test "F" in labels
     @test length(labels) == 3
 
     deletenodelabel(barenode, "D")
-    barenode = getnode(barenode)
-    labels = getnodelabels(barenode)
+    global barenode = getnode(barenode)
+    global labels = getnodelabels(barenode)
     @test "E" in labels
     @test "F" in labels
     @test length(labels) == 2
 
-    nodes = getnodesforlabel(graph, "E")
+    global nodes = getnodesforlabel(graph, "E")
     @test length(nodes) > 0
     @test barenode.id in [n.id for n = nodes]
 
-    labels = getlabels(graph)
+    global labels = getlabels(graph)
 end
 
 @testset "Relationships: CRUD, neighbors" begin
-    rel1 = createrel(barenode, propnode, "test"; props=Dict{AbstractString,Any}("a" => "A", "b" => 1)); #UTF8String
-    rel1alt = getrel(graph, rel1.id);
+    global rel1 = createrel(barenode, propnode, "test"; props=Dict{AbstractString,Any}("a" => "A", "b" => 1)); #UTF8String
+    global rel1alt = getrel(graph, rel1.id);
     @test rel1.reltype == "TEST"
     @test rel1.data["a"] == "A"
     @test rel1.data["b"] == 1
     @test rel1.id == rel1alt.id
 
-    endnode = Neo4j.createnode(graph, Dict{AbstractString,Any}("a" => "A", "b" => 1))  # UTF8String
-    rel2 = createrel(propnode, endnode, "test"; props=Dict{AbstractString,Any}("a" => "A", "b" => 1));  # UTF8String
+    global endnode = Neo4j.createnode(graph, Dict{AbstractString,Any}("a" => "A", "b" => 1))  # UTF8String
+    global rel2 = createrel(propnode, endnode, "test"; props=Dict{AbstractString,Any}("a" => "A", "b" => 1));  # UTF8String
     @test length(Neo4j.getrels(endnode)) == 1
     @test length(Neo4j.getrels(propnode)) == 2
     @test length(Neo4j.getrels(barenode)) == 1
@@ -117,16 +121,16 @@ end
     @test length(Neo4j.getrels(propnode, incoming=true, outgoing=false)) == 1
     @test length(Neo4j.getrels(propnode, incoming=false, outgoing=true)) == 1
 
-    neighbors = Neo4j.getneighbors(propnode)
+    global neighbors = Neo4j.getneighbors(propnode)
     @test length(neighbors) == 2
-    neighbors = Neo4j.getneighbors(propnode, incoming=true, outgoing=false)
+    global neighbors = Neo4j.getneighbors(propnode, incoming=true, outgoing=false)
     @test length(neighbors) == 1
     @test neighbors[1].metadata["id"] == barenode.metadata["id"]
-    neighbors = Neo4j.getneighbors(propnode, incoming=false, outgoing=true)
+    global neighbors = Neo4j.getneighbors(propnode, incoming=false, outgoing=true)
     @test length(neighbors) == 1
     @test neighbors[1].metadata["id"] == endnode.metadata["id"]
 
-    rel1prop = getrelproperties(rel1);
+    global rel1prop = getrelproperties(rel1);
     @test rel1prop["a"] == "A"
     @test rel1prop["b"] == 1
     @test length(rel1prop) == 2
@@ -153,7 +157,7 @@ function createnode(txn, name, age; submit=false)
 end
 
 @testset "Transactions" begin
-    loadtx = transaction(conn)
+    global loadtx = transaction(conn)
 
     @test length(loadtx.statements) == 0
 
@@ -165,38 +169,38 @@ end
 
     @test length(loadtx.statements) == 2
 
-    query = "MATCH (n:Neo4jjl) WHERE n.age = {age} RETURN n.name";
-    people = loadtx(query, "age" => 20; submit=true)
+    global query = "MATCH (n:Neo4jjl) WHERE n.age = {age} RETURN n.name";
+    global people = loadtx(query, "age" => 20; submit=true)
 
     @test length(loadtx.statements) == 0
     @test length(people.results) == 3
     @test length(people.errors) == 0
 
-    matchresult = people.results[3]
+    global matchresult = people.results[3]
     @test matchresult["columns"][1] == "n.name"
     @test "John Doe" in [row["row"][1] for row = matchresult["data"]]
     @test "Jane Doe" in [row["row"][1] for row = matchresult["data"]]
 
-    loadresult = commit(loadtx)
+    global loadresult = commit(loadtx)
 
     @test length(loadresult.results) == 0
     @test length(loadresult.errors) == 0
 
-    query = "MATCH (n:Neo4jjl) WHERE n.age = {age} DELETE n"
+    global query = "MATCH (n:Neo4jjl) WHERE n.age = {age} DELETE n"
 
-    deletetx = transaction(conn)
+    global deletetx = transaction(conn)
     deletetx(query, "age" => 20)
 
-    deleteresult = commit(deletetx)
+    global deleteresult = commit(deletetx)
 
     @test length(deleteresult.results) == 1
     @test length(deleteresult.results[1]["columns"]) == 0
     @test length(deleteresult.results[1]["data"]) == 0
     @test length(deleteresult.errors) == 0
 
-    rolltx = transaction(conn)
+    global rolltx = transaction(conn)
 
-    person = createnode(rolltx, "John Doe", 20; submit=true)
+    global person = createnode(rolltx, "John Doe", 20; submit=true)
 
     @test length(rolltx.statements) == 0
     @test length(person.results) == 1
@@ -204,8 +208,8 @@ end
 
     rollback(rolltx)
 
-    rolltx = transaction(conn)
-    rollresult = rolltx("MATCH (n:Neo4jjl) WHERE n.name = 'John Doe' RETURN n"; submit=true)
+    global rolltx = transaction(conn)
+    global rollresult = rolltx("MATCH (n:Neo4jjl) WHERE n.name = 'John Doe' RETURN n"; submit=true)
 
     @test length(rollresult.results) == 1
     @test length(rollresult.results[1]["columns"]) == 1
@@ -219,18 +223,18 @@ end
 @testset "DataFrames with cypherQuery()" begin
 
     # Open transaction and create node
-    loadtx = transaction(conn)
+    global loadtx = transaction(conn)
     createnode(loadtx, "John Doe", 20; submit=true)
     Neo4j.commit(loadtx)
 
-    matchresult = cypherQuery(conn,
+    global matchresult = cypherQuery(conn,
                       "MATCH (n:Neo4jjl {name: {name}}) RETURN n.name AS Name, n.age AS Age;",
                       "name" => "John Doe")
     @test DataFrames.DataFrame(Name = "John Doe", Age = 20) == matchresult
 
     # Cleanup
-    deletetx = transaction(conn)
-    query = "MATCH (n:Neo4jjl) WHERE n.age = {age} DELETE n"
+    global deletetx = transaction(conn)
+    global query = "MATCH (n:Neo4jjl) WHERE n.age = {age} DELETE n"
     deletetx(query, "age" => 20)
-    deleteresult = commit(deletetx)
+    global deleteresult = commit(deletetx)
 end

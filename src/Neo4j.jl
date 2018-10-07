@@ -2,6 +2,7 @@ module Neo4j
 
 using HTTP
 using JSON
+using DocStringExtensions
 
 export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperty,
        getnodeproperties, updatenodeproperties, deletenodeproperties, deletenodeproperty,
@@ -231,7 +232,7 @@ function deletenode(graph::Graph, id::Int)
 end
 
 function setnodeproperty(node::Node, name::T, value::Any) where {T <: AbstractString}
-    url = replace(node.property, "{key}", name)
+    url = replace(node.property, "{key}" => name)
     request(url, HTTP.put, 204, connheaders(node.graph.connection); jsonDict=value)
 end
 
@@ -245,7 +246,7 @@ function updatenodeproperties(node::Node, props::JSONObject)
 end
 
 function getnodeproperty(node::Node, name::T) where {T <: AbstractString}
-    url = replace(node.property, "{key}", name)
+    url = replace(node.property, "{key}" => name)
     resp = request(url, HTTP.get, 200, connheaders(node.graph.connection))
     JSON.parse(resp)
 end
@@ -265,7 +266,7 @@ function deletenodeproperties(node::Node)
 end
 
 function deletenodeproperty(node::Node, name::T) where {T <: AbstractString}
-    url = replace(node.property, "{key}", name)
+    url = replace(node.property, "{key}" => name)
     request(url, HTTP.delete, 204, connheaders(node.graph.connection))
 end
 
@@ -382,7 +383,7 @@ function deleterel(rel::Relationship)
 end
 
 function getrelproperty(rel::Relationship, name::AbstractString)
-    url = replace(rel.property, "{key}", name)
+    url = replace(rel.property, "{key}" => name)
     resp = request(url, HTTP.get, 200, connheaders(rel.graph.connection))
     JSON.parse(resp)
 end

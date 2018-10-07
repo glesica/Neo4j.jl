@@ -2,7 +2,7 @@
 using DataFrames, Missings;
 
 """
-   cypherQuery(conn, cypher, params...; elTypes, nRowsElTypeCheck)
+   $(SIGNATURES)
 
 Retrieve molecular identifier from other databases, `targetDb`, for single or mulitple query IDs, `queryId`,
 and moreover information on Ensembl gene, transcript and peptide IDs, such as ID and genomic loation.
@@ -78,14 +78,14 @@ end
 
 function getElTypes(x::Vector{Any}, nRowsElTypeCheck::Int = 0)::Vector{Type}
    nRecords = length(x);
-   elTypes::Vector{Type} = Type[Union{Void, Missings.Missing} for i in 1:length(x[1]["row"])];
+   elTypes::Vector{Type} = Type[Union{Nothing, Missings.Missing} for i in 1:length(x[1]["row"])];
    nMaxRows = nRecords;
-   # elTypes = Type[Union{Void, Missings.Missing} for i in 1:length(x[1]["row"])];
+   # elTypes = Type[Union{Nothing, Missings.Missing} for i in 1:length(x[1]["row"])];
    nMaxRows = (nRowsElTypeCheck != 0 && nRowsElTypeCheck <= nMaxRows) ? nRowsElTypeCheck : nRecords;
    checkIdx = trues(length(x[1]["row"]));
    for i in 1:nMaxRows
       # check each column individually
-      for el in find(checkIdx)
+      for el in findall(checkIdx)
          if !(x[i]["row"][el] == nothing)
             if !(typeof(x[i]["row"][el]) === Array{Any,1})
                elTypes[el] = i > 1 ?
@@ -99,7 +99,7 @@ function getElTypes(x::Vector{Any}, nRowsElTypeCheck::Int = 0)::Vector{Type}
             checkIdx[el] = false;
          end
       end
-      if isempty(find(checkIdx))
+      if isempty(findall(checkIdx))
          break;
       end
    end
