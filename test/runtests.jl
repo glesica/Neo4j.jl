@@ -16,7 +16,7 @@ global conn = nothing
     try
       global graph = getgraph()
     catch
-      @info "[TEST] Anonymous connection failed! Creating a Neo4j connection to localhost:7474 with neo4j:marine credentials..."
+      @info "[TEST] Anonymous connection failed! Creating a Neo4j connection to localhost:7474 with neo4j:$(passwd) credentials..."
       #Trying with security.
       global conn = Neo4j.Connection("localhost"; user=username, password=passwd);
       global graph = getgraph(conn);
