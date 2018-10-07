@@ -3,6 +3,7 @@ module Neo4j
 using HTTP
 using JSON
 using DocStringExtensions
+using Base64
 
 export getgraph, version, createnode, getnode, deletenode, setnodeproperty, getnodeproperty,
        getnodeproperties, updatenodeproperties, deletenodeproperties, deletenodeproperty,
@@ -141,7 +142,7 @@ struct Node
          data["self"], data["outgoing_typed_relationships"], data["properties"],
          data["incoming_relationships"], data["incoming_typed_relationships"],
          data["create_relationship"], data["data"], data["metadata"],
-         split(data["self"], "/")[end] |> parse, graph)
+         split(data["self"], "/")[end] |> Meta.parse, graph)
 end
 
 # ----------
@@ -323,7 +324,7 @@ end
 
 Relationship(data::JSONObject, graph::Graph) = Relationship(data["start"], data["property"],
         data["self"], data["properties"], data["metadata"], data["type"], data["end"], data["data"],
-        split(data["self"], "/")[end] |> parse, graph)
+        split(data["self"], "/")[end] |> Meta.parse, graph)
 
 function getrels(node::Node; incoming::Bool = true, outgoing::Bool = true)
   rels = Vector{Relationship}()
