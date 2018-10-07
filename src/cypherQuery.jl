@@ -60,7 +60,7 @@ function parseResults(res::Dict{String, Any}; elTypes::Vector{DataType} = Vector
    if isempty(elTypes)
       elTypes = getElTypes(res["data"], nRowsElTypeCheck);
    end
-   colNames = collect(Symbol, res["columns"]);
+   colNames = Symbol.(collect(res["columns"])) # collect(Symbol, res["columns"]);
    nRows = length(res["data"]);
 
    x = DataFrames.DataFrame(elTypes, colNames, nRows);
