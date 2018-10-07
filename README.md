@@ -36,9 +36,9 @@ Rollbacks are also supported:
 rollback(tx)
 ```
 
-If the goal is to simply run a MATCH query and having the result in the form of a
+If the goal is to simply run a MATCH query and get the result in the form of a
 `DataFrames.DataFrame` object, the `cypherQuery` function can be used.
-The `cypherQuery` implementation performs the query in a single trnsaction which
+The `cypherQuery` implementation performs the query in a single transaction which
 automatically opens and closes the transaction:
 
 ```julia
