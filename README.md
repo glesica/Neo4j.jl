@@ -42,5 +42,5 @@ The `cypherQuery` implementation performs the query in a single transaction whic
 automatically opens and closes the transaction:
 
 ```julia
-results = cypherQuery("MATCH (n) RETURN n.property AS Property")
+results = cypherQuery(c, "MATCH (n) RETURN n.property AS Property")
 ```
