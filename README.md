@@ -1,3 +1,6 @@
+> This project is no longer actively maintained and probably doesn't work with recent versions of
+> Neo4j. PRs to fix aspects of its functionality are still welcome.
+
 # Neo4j.jl
 
 [![Build Status](https://travis-ci.org/glesica/Neo4j.jl.svg?branch=master)](https://travis-ci.org/glesica/Neo4j.jl)

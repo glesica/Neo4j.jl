@@ -8,6 +8,8 @@ notifications:
 ## (tests will run but not make your overall status red)
 matrix:
   allow_failures:
+    - 0.7
+    - 1.0
     - julia: nightly
 
 before_install:
