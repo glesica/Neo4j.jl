@@ -1,3 +1,5 @@
+> This library is no longer maintained or functional, but feel free to submit PRs with fixes.
+
 # Neo4j.jl
 
 [![Build Status](https://travis-ci.org/glesica/Neo4j.jl.svg?branch=master)](https://travis-ci.org/glesica/Neo4j.jl)
