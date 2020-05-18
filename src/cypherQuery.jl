@@ -42,7 +42,9 @@ function cypherQuery(
    respdata = JSON.parse(String(resp.body))
 
    if !isempty(respdata["errors"])
-      error(join(map(i -> (i * ": " * respdata["errors"][1][i]), keys(respdata["errors"][1])), "\n"));
+     ks = (k for k in keys(respdata["errors"][1]))
+     es = (k * ": " * respdata["errors"][1][k] for k in ks)
+     error(join(es, "\n"));
    end
    # parse results into data sink
    # Result(respdata["results"], respdata["errors"])
