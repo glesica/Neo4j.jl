@@ -62,6 +62,7 @@ end
 function connheaders(c::Connection)
   headers = Dict(
     "Accept" => "application/json; charset=UTF-8",
+    "content-type" => "application/json",
     "Host" => "$(c.host):$(c.port)")
   if c.user != "" && c.password != ""
     payload = "$(c.user):$(c.password)" |> base64encode
