@@ -63,13 +63,13 @@ function parseResults(res::Dict{String, Any}; elTypes::Vector{DataType} = Vector
    colNames = Symbol.(collect(res["columns"])) # collect(Symbol, res["columns"]);
    nRows = length(res["data"]);
 
-   x = DataFrames.DataFrame(elTypes, colNames, nRows);
+   # x = DataFrames.DataFrame(elTypes, colNames, nRows);
+   x = DataFrames.DataFrame(colNames .=> [type[] for type in elTypes])
 
-   for (rowIdx, rowVal) in enumerate(res["data"])
-      for (colIdx,colVal) in enumerate(rowVal["row"])
-         if colVal != nothing
-            x[rowIdx,colIdx] = colVal;
-         end
+   for rowVal in res["data"]
+      row = rowVal["row"]
+      if !isnothing(row)
+         push!(x, row)
       end
    end
 
