@@ -3,12 +3,8 @@
 
 # Neo4j.jl
 
-[![Build Status](https://travis-ci.org/glesica/Neo4j.jl.svg?branch=master)](https://travis-ci.org/glesica/Neo4j.jl)
+[![CI](https://github.com/glesica/Neo4j.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/glesica/Neo4j.jl/actions/workflows/CI.yml)
 [![codecov.io](https://codecov.io/github/glesica/Neo4j.jl/coverage.svg?branch=master)](https://codecov.io/github/glesica/Neo4j.jl?branch=master)
-
-[![Neo4j](http://pkg.julialang.org/badges/Neo4j_0.6.svg)](http://pkg.julialang.org/?pkg=Neo4j&ver=0.6)
-[![Neo4j](http://pkg.julialang.org/badges/Neo4j_0.7.svg)](http://pkg.julialang.org/?pkg=Neo4j&ver=0.7)
-[![Neo4j](http://pkg.julialang.org/badges/Neo4j_1.0.svg)](http://pkg.julialang.org/?pkg=Neo4j&ver=1.0)
 
 A [Julia](http://julialang.org) client for the [Neo4j](http://neo4j.org) graph
 database.
