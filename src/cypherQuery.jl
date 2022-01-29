@@ -68,7 +68,7 @@ function parseResults(res::Dict{String, Any}; elTypes::Vector{DataType} = Vector
 
    for rowVal in res["data"]
       row = rowVal["row"]
-      if !isnothing(row)
+      if row !== nothing
          push!(x, row)
       end
    end
