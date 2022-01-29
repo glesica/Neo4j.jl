@@ -11,6 +11,7 @@ JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 Missings = "e1d29d7a-bbdc-5cf2-9ac0-f12de2c33e28"
 
 [compat]
+julia = "1"
 DataFrames = "1"
 DocStringExtensions = "0.8, 0.9, 0.10, 1"
 HTTP = "0.9"
